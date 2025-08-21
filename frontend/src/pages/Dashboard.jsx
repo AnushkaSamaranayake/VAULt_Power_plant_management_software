@@ -5,8 +5,12 @@ import Inspection from '../components/Dashboard/Inspection'
 import Notification from '../components/Dashboard/Notification'
 import Recent from '../components/Dashboard/Recent'
 import Addition from '../components/Dashboard/Addition'
+import { branches } from '../constants';
+import { useNavigate } from 'react-router';
 
 const Dashboard = () => {
+
+    const navigate = useNavigate();
 
     const [branch, setBranch] = React.useState("");
 
@@ -20,9 +24,9 @@ const Dashboard = () => {
                     <label htmlFor="branch-name" className='mr-8 text-md'>Branch</label>
                     <select name="branch-name" id="branch-name" value={branch} onChange={(e) => setBranch(e.target.value)} className='border border-none bg-yellow-50 p-2 rounded-lg w-60 text-center text-sm'>
                         <option value="" disabled>Select Branch</option>
-                        <option value="nugegoda">Nugegoda</option>
-                        <option value="kottawa">Kottawa</option>
-                        <option value="moratuwa">Moratuwa</option>
+                        {branches.map((branch) => (
+                            <option key={branch.value} value={branch.value}>{branch.label}</option>
+                        ))}
                     </select>
                 </div>
                 <div className='flex flex-row m-10 justify-between items-start'>
