@@ -47,3 +47,8 @@ export const branches = [
   { value: "kottawa", label: "Kottawa" },
   { value: "moratuwa", label: "Moratuwa" },
 ];
+
+export const transformerTypes = [
+  { value: "bulk", label: "Bulk" },
+  { value: "distribution", label: "Distribution" },
+];
