@@ -9,13 +9,13 @@ const TransformerTable = ({ activeTable }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case "Pending":
-                return "border-red-400 bg-red-400 text-red-800";
+                return "border-red-400 bg-red-300 text-red-800 ";
             case "In progress":
-                return "border-blue-400 bg-blue-400 text-blue-800";
+                return "border-blue-400 bg-blue-300 text-blue-800";
             case "Completed":
-                return "border-green-400 bg-green-400 text-green-800";
+                return "border-green-400 bg-green-300 text-green-800";
             default:
-                return "border-gray-400 bg-gray-400";
+                return "border-gray-400 bg-gray-300 text-gray-800";
         }
     };
 
@@ -81,7 +81,7 @@ const TransformerTable = ({ activeTable }) => {
                             <div className="text-xs">{inspection.maintain_date}</div>
                             <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
                             <div className="text-left">
-                                <button onClick={() => navigate(`/transformers/${inspection.id}`)} className="text-sm px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                <button onClick={() => navigate(`/transformers/${inspection.id}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
                             </div>
                         </div>
                     ))}

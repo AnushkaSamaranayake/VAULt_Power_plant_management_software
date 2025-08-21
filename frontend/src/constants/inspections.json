@@ -1,14 +1,14 @@
 [
-    {"id" : "AZ-8890", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "In progress"},
-    {"id" : "AZ-1649", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "In progress"},
-    {"id" : "AZ-7316", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Pending"},
-    {"id" : "AZ-4613", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AX-8993", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AY-8790", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AZ-4563", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AZ-8523", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AZ-8546", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AZ-7896", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AX-8990", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"},
-    {"id" : "AY-8890", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed"}
+    {"id" : "AZ-8890", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "In progress", "region" : "Nugegoda", "type" : "Bulk" },
+    {"id" : "AZ-1649", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "In progress", "region" : "Nugegoda", "type" : "Bulk" },
+    {"id" : "AZ-7316", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Pending",  "region" : "Nugegoda", "type" : "Bulk" },
+    {"id" : "AZ-4613", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Nugegoda", "type" : "Bulk" },
+    {"id" : "AX-8993", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Nugegoda", "type" : "Distribution" },
+    {"id" : "AY-8790", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Nugegoda", "type" : "Distribution" },
+    {"id" : "AZ-4563", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Bulk"},
+    {"id" : "AZ-8523", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Bulk"},
+    {"id" : "AZ-8546", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Bulk"},
+    {"id" : "AZ-7896", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Bulk"},
+    {"id" : "AX-8990", "pole_no" : "EN-122-B", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Distribution"},
+    {"id" : "AY-8890", "pole_no" : "EN-122-A", "inspec_no" : "000123589", "inspec_date" : "02-Jul-2025 19:12","maintain_date" : "02-Jul-2025 19:12", "status" : "Completed", "region" : "Maharagama", "type" : "Distribution"}
 ]

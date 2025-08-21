@@ -18,7 +18,7 @@ const Dashboard = () => {
         <>
             <div className='flex flex-col min-h-screen'>
                 <div className='items-center'>
-                    <h1 className='text-center mt-20 text-5xl font-medium'>Transformer <span className='text-blue-500'>Management</span> System</h1>
+                    <h1 className='text-center mt-20 text-5xl font-bold'>Transformer <span className='text-blue-500'>Management</span> System</h1>
                 </div>
                 <div className='flex flex-row justify-between items-center mt-20 mb-5 mx-10'>
                     <h1 className='text-2xl font-bold'>Dashboard</h1>
