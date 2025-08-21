@@ -8,17 +8,20 @@ const Transformers = () => {
 
     const [activeTable, setActiveTable] = useState("transformers");
 
-  return (
-    <div className='flex flex-col m-10 min-h-screen'>
-        <div className='flex flex-row justify-between items-center mb-10'>
-            <h1 className='text-2xl font-bold'>Transformers</h1>
-        </div>
-        <div className='flex flex-col bg-white p-5 rounded-md shadow-md'>
-            <Head activeTable={activeTable} setActiveTable={setActiveTable} />
-            <TransformerTable activeTable={activeTable}/>
-        </div>
-    </div>
-  )
+    return (
+        <>
+            <div className='flex flex-col m-10 min-h-screen'>
+                <div className='flex flex-row justify-between items-center mb-10'>
+                    <h1 className='text-2xl font-bold'>Transformers</h1>
+                </div>
+                <div className='flex flex-col bg-white p-5 rounded-md shadow-md'>
+                    <Head activeTable={activeTable} setActiveTable={setActiveTable} />
+                    <TransformerTable activeTable={activeTable}/>
+                </div>
+            </div>
+            <Footer />
+        </>
+    )
 }
 
 export default Transformers
