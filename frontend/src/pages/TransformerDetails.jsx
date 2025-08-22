@@ -1,6 +1,6 @@
 import React from 'react'
 import { useParams } from 'react-router'
-import inspections from '../../constants/inspections.json'
+import inspections from '../constants/inspections.json'
 import { useState } from 'react'
 
 const TransformerDetails = () => {
@@ -37,7 +37,14 @@ const TransformerDetails = () => {
 
     if (!transformer) return <div>Transformer not found</div>;
     return (
-        <div className='p-6 space-y-6'>
+        <>
+            <div className='flex flex-col m-10 min-h-screen'>
+                <div>
+                    <h1 className='text-2xl font-bold'>Transformer</h1>
+                </div>
+            </div>
+
+        {/* <div className='p-6 space-y-6'>
             <div className='bg-white shadow-md rounded-lg p-6 border border-gray-200'>
                 <h2 className='text-xl font-semibold text-blue-600 mb-4'>Transformer Details</h2>
                 <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
@@ -81,7 +88,8 @@ const TransformerDetails = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </div> */}
+        </>
     );
 };
 
