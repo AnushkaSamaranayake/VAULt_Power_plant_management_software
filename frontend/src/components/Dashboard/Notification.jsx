@@ -16,7 +16,7 @@ const Notification = () => {
                 ) : (
                     <div className='space-y-3'>
                         {notifications.map((notification) => (
-                            <div key={notification.id} className={`p-4 shadow rounded-2xl border-solid border-2 hover:shadow-lg transition duration-300 ${notification.bgColor} ${notification.borderColor} bg-opacity-30 cursor-pointer`} onClick={() => setSelectedNotification(notification)}>
+                            <div key={notification.id} className={`p-4 shadow rounded-2xl border-solid border-2 hover:shadow-lg transition duration-300 ${notification.bgColor} ${notification.borderColor} bg-opacity-60 cursor-pointer`} onClick={() => setSelectedNotification(notification)}>
                                 <h3 className={`font-semibold ${notification.textColor}`}>{notification.title}</h3>
                                 <p className={`text-sm ${notification.textColor}`}>{notification.description}</p>
                                 <span className={`text-xs ${notification.textColor}`}>{notification.time}</span>
