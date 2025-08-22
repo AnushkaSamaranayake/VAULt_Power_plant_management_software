@@ -43,7 +43,7 @@ const TransformerDetails = () => {
         <>  
             <div className='flex flex-col m-10 min-h-screen'>
                 <div>
-                    <h1 className='text-2xl font-bold mb-10'>Transformer</h1>
+                    <h1 className='text-3xl font-bold text-blue-900 mb-10'>Transformer</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
                     <Head />
