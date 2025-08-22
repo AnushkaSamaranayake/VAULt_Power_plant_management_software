@@ -36,7 +36,7 @@ const AddInspector = ({onClose}) => {
                     </div>
                     </div>
                     <div className='flex flex-row items-start justify-between gap-4 mt-5'>
-                        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md mb-4 text-sm">Add Transformer</button>
+                        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md mb-4 text-sm">Add Inspection</button>
                         <button type="submit" className="w-full text-gray-600 py-2 rounded-md text-sm" onClick={onClose}>Close</button>
                     </div>
                 </form>
