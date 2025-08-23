@@ -7,8 +7,8 @@ import ImageUpload from '../components/InspectionDetails/ImageUpload'
 import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
-    const { id } = useParams();
-    const inspection = inspections.find(inspection => inspection.id === id);
+    const { inspec_no } = useParams();
+    const inspection = inspections.find(inspection => inspection.inspec_no === inspec_no);
 
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadImage, setUploadImage] = useState(null);

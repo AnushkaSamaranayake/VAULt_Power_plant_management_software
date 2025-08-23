@@ -81,7 +81,7 @@ const TransformerTable = ({ activeTable }) => {
                             <div className="text-xs">{inspection.maintain_date}</div>
                             <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
                             <div className="text-left">
-                                <button onClick={() => navigate(`/transformers/${inspection.id}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                <button onClick={() => navigate(`/inspections/${inspection.inspec_no}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
                             </div>
                         </div>
                     ))}

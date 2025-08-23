@@ -6,8 +6,8 @@ import { useEffect } from 'react'
 import { Image, Eye, Trash2 } from 'lucide-react'
 
 const Head = () => {
-    const { id } = useParams();
-    const inspection = inspections.find(inspection => inspection.id === id);
+    const { inspec_no } = useParams();
+    const inspection = inspections.find(inspection => inspection.inspec_no === inspec_no);
 
     const [time, setTime] = useState(new Date());
 
