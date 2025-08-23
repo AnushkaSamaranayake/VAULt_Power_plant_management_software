@@ -6,9 +6,9 @@ import Head from '../components/TransformerDetails/Head'
 import ImageUpload from '../components/TransformerDetails/ImageUpload'
 import Footer from '../components/Footer'
 
-const TransformerDetails = () => {
+const InspectionDetails = () => {
     const { id } = useParams();
-    const transformer = inspections.find(transformer => transformer.id === id);
+    const inspection = inspections.find(inspection => inspection.id === id);
 
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadImage, setUploadImage] = useState(null);
@@ -38,12 +38,12 @@ const TransformerDetails = () => {
         }, 300);
     };
 
-    if (!transformer) return <div>Transformer not found</div>;
+    if (!inspection) return <div>Inspection not found</div>;
     return (
         <>  
             <div className='flex flex-col m-10 min-h-screen'>
                 <div>
-                    <h1 className='text-3xl font-bold text-blue-900 mb-10'>Transformer</h1>
+                    <h1 className='text-3xl font-bold text-blue-900 mb-10'>Inspection</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
                     <Head />
@@ -55,4 +55,4 @@ const TransformerDetails = () => {
     );
 };
 
-export default TransformerDetails;
+export default InspectionDetails;

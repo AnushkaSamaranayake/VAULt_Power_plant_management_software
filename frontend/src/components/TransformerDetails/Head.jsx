@@ -1,13 +1,13 @@
 import React from 'react'
 import { useState } from 'react'
-import inspection from '../../constants/inspections.json'
+import inspections from '../../constants/inspections.json'
 import { useParams } from 'react-router'
 import { useEffect } from 'react'
 import { Image, Eye, Trash2 } from 'lucide-react'
 
 const Head = () => {
     const { id } = useParams();
-    const transformer = inspection.find(transformer => transformer.id === id);
+    const inspection = inspections.find(inspection => inspection.id === id);
 
     const [time, setTime] = useState(new Date());
 
@@ -36,30 +36,30 @@ const Head = () => {
             <div className='flex flex-col justify-between p-2'>
                 <div className='flex flex-row justify-between items-center mb-6'>
                     <div className='flex flex-col items-start'>
-                        <h1 className='text-xl font-semibold'>{transformer?.inspec_no}</h1>
-                        <p className='text-xs text-gray-500'><span>Transformer last inspected on: </span>{transformer?.inspec_date}</p>
+                        <h1 className='text-xl font-semibold'>{inspection?.inspec_no}</h1>
+                        <p className='text-xs text-gray-500'><span>Transformer last inspected on: </span>{inspection?.inspec_date}</p>
                     </div>
                     <div className='flex flex-row items-center space-x-4'>
                         <p className='text-xs text-gray-500'><span>Last updated on: </span>{time.toLocaleTimeString()}</p>
-                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(transformer?.status)}`}>{transformer?.status}</div>
+                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>{inspection?.status}</div>
                     </div>
                 </div>
                 <div className='flex flex-row justify-between items-center'>
                     <div className='grid grid-cols-4 gap-4'>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{transformer?.id}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.id}</h2>
                             <p className='text-xs text-gray-700'>Transformer No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{transformer?.pole_no}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.pole_no}</h2>
                             <p className='text-xs text-gray-700'>Pole No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{transformer?.region}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.region}</h2>
                             <p className='text-xs text-gray-700'>Branch</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{transformer?.inspec_by}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.inspec_by}</h2>
                             <p className='text-xs text-gray-700'>Inspected By</p>
                         </div>
                     </div>
@@ -78,4 +78,4 @@ const Head = () => {
     )
 }
 
-export default Head
+export default Head;
