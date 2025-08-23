@@ -5,11 +5,14 @@ import { useState } from 'react'
 import Head from '../components/TransformerDetails/Head'
 import InspectionTable from '../components/TransformerDetails/InspectionTable'
 import Footer from '../components/Footer'
+import AddInspector from '../components/Transformers/AddInspector';
 
 const TransformerDetails = () => {
 
     const { id } = useParams();
     const filteredInspection = inspections.filter(inspection => inspection.id === id); //here inspection id is transformerId
+
+    const [showAddInspection, setShowAddInspection] = useState(false);
 
     return (
         <>
@@ -20,7 +23,14 @@ const TransformerDetails = () => {
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
                     <Head/>
                 </div>
-                <InspectionTable inspections={filteredInspection} />
+                <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
+                    <div className='flex flex-row items-center justify-between mb-5'>
+                        <h2 className='text-xl font-semibold text-blue-800'>Inspections</h2>
+                        <button className='ml-5 px-4 py-1 bg-blue-500 text-white rounded-lg text-sm' onClick={() => setShowAddInspection(true)}>Add Inspection</button>
+                    </div>
+                    <InspectionTable inspections={filteredInspection} />
+                </div>
+                {showAddInspection && <AddInspector onClose={() => setShowAddInspection(false)} />}
             </div>
             <Footer />
         </>
