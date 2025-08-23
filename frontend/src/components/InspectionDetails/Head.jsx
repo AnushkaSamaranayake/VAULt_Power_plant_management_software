@@ -1,13 +1,10 @@
 import React from 'react'
-import { useState } from 'react'
-import inspections from '../../constants/inspections.json'
+import { useState, useEffect } from 'react'
+// import inspections from '../../constants/inspections.json'
 import { useParams } from 'react-router'
-import { useEffect } from 'react'
 import { Image, Eye, Trash2 } from 'lucide-react'
 
-const Head = () => {
-    const { inspec_no } = useParams();
-    const inspection = inspections.find(inspection => inspection.inspec_no === inspec_no);
+const Head = ({ inspection }) => {
 
     const [time, setTime] = useState(new Date());
 
@@ -36,8 +33,8 @@ const Head = () => {
             <div className='flex flex-col justify-between p-2'>
                 <div className='flex flex-row justify-between items-center mb-6'>
                     <div className='flex flex-col items-start'>
-                        <h1 className='text-xl font-semibold'>{inspection?.inspec_no}</h1>
-                        <p className='text-xs text-gray-500'><span>Transformer last inspected on: </span>{inspection?.inspec_date}</p>
+                        <h1 className='text-xl font-semibold'>{inspection?.inspectionNo}</h1>
+                        <p className='text-xs text-gray-500'><span>Transformer last inspected on: </span>{inspection?.dateOfInspectionAndTime}</p>
                     </div>
                     <div className='flex flex-row items-center space-x-4'>
                         <p className='text-xs text-gray-500'><span>Last updated on: </span>{time.toLocaleTimeString()}</p>
@@ -47,19 +44,19 @@ const Head = () => {
                 <div className='flex flex-row justify-between items-center'>
                     <div className='grid grid-cols-4 gap-4'>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{inspection?.id}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.transformerNo}</h2>
                             <p className='text-xs text-gray-700'>Transformer No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{inspection?.pole_no}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.poleNo}</h2>
                             <p className='text-xs text-gray-700'>Pole No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{inspection?.region}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.branch}</h2>
                             <p className='text-xs text-gray-700'>Branch</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{inspection?.inspec_by}</h2>
+                            <h2 className='text-md font-semibold'>{inspection?.inspecBy}</h2>
                             <p className='text-xs text-gray-700'>Inspected By</p>
                         </div>
                     </div>

@@ -1,14 +1,28 @@
 import React from 'react'
+import axios from 'axios'
 import { useParams } from 'react-router'
-import inspections from '../constants/inspections.json'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Head from '../components/InspectionDetails/Head'
 import ImageUpload from '../components/InspectionDetails/ImageUpload'
 import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
-    const { inspec_no } = useParams();
-    const inspection = inspections.find(inspection => inspection.inspec_no === inspec_no);
+
+
+    const { inspectionNo } = useParams();
+
+    const [inspection, setInspection] = useState(null);
+
+    useEffect(() => {
+        axios.get(`http://localhost:8080/api/inspections/${inspectionNo}`)
+            .then((response) => {
+                setInspection(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching inspections:", error);
+            });
+    }, [inspectionNo]);
+
 
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadImage, setUploadImage] = useState(null);
@@ -39,6 +53,7 @@ const InspectionDetails = () => {
     };
 
     if (!inspection) return <div>Inspection not found</div>;
+
     return (
         <>  
             <div className='flex flex-col m-10 min-h-screen'>
@@ -46,7 +61,7 @@ const InspectionDetails = () => {
                     <h1 className='text-3xl font-bold text-blue-900 mb-10'>Inspection</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
-                    <Head />
+                    <Head inspection={inspection} />
                 </div>
                 <ImageUpload />
             </div>

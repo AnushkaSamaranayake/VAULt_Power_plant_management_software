@@ -1,25 +1,49 @@
 import React from 'react'
+import axios from 'axios'
 import Head from '../components/Transformers/Head'
 import TransformerTable from '../components/Transformers/TransformerTable'
-import inspections from '../constants/inspections.json'
-import { useState } from 'react'
+// import inspections from '../constants/inspections.json'
+import { useState, useEffect } from 'react'
 import Footer from '../components/Footer'
 import { useParams } from 'react-router'
 
 const Transformers = () => {
 
     const [activeTable, setActiveTable] = useState("transformers");
-    
+
+    const [transformers, setTransformers] = useState([]);
+    const [inspections, setInspections] = useState([]);
+
+    useEffect(() => {
+        axios.get("http://localhost:8080/api/transformers")
+            .then((response) => {
+                setTransformers(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching transformers:", error);
+            });
+    }, []);
+
+    useEffect(() => {
+        axios.get("http://localhost:8080/api/inspections")
+            .then((response) => {
+                setInspections(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching inspections:", error);
+            });
+    }, []);
+
     // Step 1: Reduce inspections to unique transformers
     const transformerMap = new Map();
 
-    inspections.forEach((inspection) => {
-        if (!transformerMap.has(inspection.id)) {
-        transformerMap.set(inspection.id, {
-            id: inspection.id,
-            pole_no: inspection.pole_no,
-            region: inspection.region,
-            type: inspection.type,
+    transformers.forEach((transformer) => {
+        if (!transformerMap.has(transformer.transformerNo)) {
+        transformerMap.set(transformer.transformerNo, {
+            transformerNo: transformer.transformerNo,
+            poleNo: transformer.poleNo,
+            region: transformer.region,
+            type: transformer.type,
         });
         }
     });

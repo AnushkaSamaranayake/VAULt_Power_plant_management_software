@@ -1,6 +1,6 @@
 import React from "react";
 import { useEffect,useState } from "react";
-import transformers from "../../constants/transformers.json";
+// import transformers from "../../constants/transformers.json";
 // import inspections from "../../constants/inspections.json";
 import { useNavigate } from "react-router-dom";
 
@@ -21,23 +21,6 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
 
     const navigate = useNavigate();
 
-    // const [transformers, setTransformers] = useState([]);
-    // const [inspections, setInspections] = useState([]);
-
-    // useEffect(() => {
-    //     // Fetch Table 1 data
-    //     fetch("http://localhost:5000/api/transformers")
-    //         .then((res) => res.json())
-    //         .then((data) => setTransformers(data))
-    //         .catch((err) => console.error("Error fetching table transformers:", err));
-
-    //     // Fetch Table 2 data
-    //     fetch("http://localhost:5000/api/inspections")
-    //         .then((res) => res.json())
-    //         .then((data) => setInspections(data))
-    //         .catch((err) => console.error("Error fetching table inspections:", err));
-    // }, []);
-
     return (
         <div>
             {activeTable === "transformers" && (
@@ -50,13 +33,13 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
                         <div className="font-semibold">Actions</div>
                     </div>
                     {transformers.map((transformer) => (
-                        <div key={transformer.id} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4">
-                            <div className="text-xs">{transformer.id}</div>
-                            <div className="text-xs">{transformer.pole_no}</div>
+                        <div key={transformer.transformerNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4">
+                            <div className="text-xs">{transformer.transformerNo}</div>
+                            <div className="text-xs">{transformer.poleNo}</div>
                             <div className="text-xs">{transformer.region}</div>
                             <div className="text-xs">{transformer.type}</div>
                             <div className="text-left">
-                                <button onClick={() => navigate(`/transformers/${transformer.id}`)} className="text-sm px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                <button onClick={() => navigate(`/transformers/${transformer.transformerNo}`)} className="text-sm px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
                             </div>
                         </div>
                     ))}
@@ -74,14 +57,14 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
                         <div className="font-semibold">Actions</div>
                     </div>
                     {inspections.map((inspection) => (
-                        <div key={inspection.id} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3">
-                            <div className="text-xs">{inspection.id}</div>
-                            <div className="text-xs">{inspection.inspec_no}</div>
-                            <div className="text-xs">{inspection.inspec_date}</div>
-                            <div className="text-xs">{inspection.maintain_date}</div>
+                        <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3">
+                            <div className="text-xs">{inspection.transformerNo}</div>
+                            <div className="text-xs">{inspection.inspectionNo}</div>
+                            <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
+                            <div className="text-xs">{inspection.maintainDate}</div>
                             <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
                             <div className="text-left">
-                                <button onClick={() => navigate(`/inspections/${inspection.inspec_no}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                <button onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
                             </div>
                         </div>
                     ))}
