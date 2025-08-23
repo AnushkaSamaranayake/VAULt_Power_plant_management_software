@@ -6,7 +6,10 @@ import com.example.transformerthermalinspector.repository.TransformerRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,6 +24,7 @@ public class TransformerService {
 
     private final TransformerRepository transformerRepository;
     private final ModelMapper modelMapper; // For Entity ↔ DTO conversion
+    private final ImageStorageService imageStorageService;
 
     /**
      * Retrieve all transformers from database
@@ -106,15 +110,47 @@ public class TransformerService {
 
     /**
      * Delete a transformer by transformer number
+     * Also deletes associated baseline image file
      * @param transformerNo The transformer number to delete
      * @return true if deleted successfully, false if not found
      */
     public boolean deleteTransformer(String transformerNo) {
-        if (transformerRepository.existsById(transformerNo)) {
+        // Find transformer first to get baseline image path
+        Optional<Transformer> transformerOpt = transformerRepository.findById(transformerNo);
+        
+        if (transformerOpt.isPresent()) {
+            Transformer transformer = transformerOpt.get();
+            
+            System.out.println("Deleting transformer: " + transformerNo);
+            System.out.println("Baseline image path: " + transformer.getBaselineImagePath());
+            
+            // Delete baseline image file if exists
+            if (transformer.getBaselineImagePath() != null && !transformer.getBaselineImagePath().trim().isEmpty()) {
+                try {
+                    System.out.println("Attempting to delete image file: " + transformer.getBaselineImagePath());
+                    imageStorageService.deleteImage(transformer.getBaselineImagePath());
+                    System.out.println("Successfully deleted baseline image: " + transformer.getBaselineImagePath());
+                } catch (IOException e) {
+                    // Log warning but don't fail the deletion - database cleanup is more important
+                    System.err.println("Warning: Could not delete baseline image file '" + 
+                                     transformer.getBaselineImagePath() + "': " + e.getMessage());
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    System.err.println("Unexpected error deleting image: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("No baseline image to delete");
+            }
+            
+            // Delete transformer from database
             transformerRepository.deleteById(transformerNo);
+            System.out.println("Deleted transformer from database: " + transformerNo);
             return true;
         }
-        return false;
+        
+        System.out.println("Transformer not found: " + transformerNo);
+        return false; // Transformer not found
     }
 
     /**
@@ -124,5 +160,48 @@ public class TransformerService {
      */
     public boolean existsByTransformerNo(String transformerNo) {
         return transformerRepository.existsById(transformerNo);
+    }
+
+    /**
+     * Upload baseline image for a transformer
+     * @param transformerNo The transformer number
+     * @param imageFile The image file to upload
+     * @param weather The weather conditions (optional)
+     * @return Updated TransformerDTO
+     * @throws RuntimeException if transformer not found
+     * @throws IOException if file storage fails
+     */
+    public TransformerDTO uploadBaselineImage(String transformerNo, MultipartFile imageFile, String weather) 
+            throws IOException {
+        
+        // Find transformer
+        Optional<Transformer> transformerOpt = transformerRepository.findById(transformerNo);
+        if (transformerOpt.isEmpty()) {
+            throw new RuntimeException("Transformer not found with number: " + transformerNo);
+        }
+        
+        Transformer transformer = transformerOpt.get();
+        
+        // Delete old image if exists
+        if (transformer.getBaselineImagePath() != null) {
+            try {
+                imageStorageService.deleteImage(transformer.getBaselineImagePath());
+            } catch (IOException e) {
+                // Log warning but continue - don't fail the upload for cleanup issues
+                System.err.println("Warning: Could not delete old image: " + e.getMessage());
+            }
+        }
+        
+        // Store new image
+        String imagePath = imageStorageService.storeBaselineImage(imageFile, transformerNo);
+        
+        // Update transformer
+        transformer.setBaselineImagePath(imagePath);
+        transformer.setWeather(weather);
+        transformer.setBaselineImageUploadDateAndTime(LocalDateTime.now());
+        
+        // Save and return
+        Transformer savedTransformer = transformerRepository.save(transformer);
+        return modelMapper.map(savedTransformer, TransformerDTO.class);
     }
 }
