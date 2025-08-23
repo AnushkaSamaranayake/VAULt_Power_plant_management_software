@@ -14,7 +14,7 @@ import java.util.List;
  * Provides CRUD operations and custom queries for inspection data.
  */
 @Repository
-public interface InspectionRepository extends JpaRepository<Inspection, String> {
+public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     
     // Find all inspections for a specific transformer
     List<Inspection> findByTransformerNo(String transformerNo);

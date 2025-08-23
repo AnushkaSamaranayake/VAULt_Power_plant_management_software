@@ -39,7 +39,7 @@ public class InspectionService {
      * @param inspectionNo The inspection number to search for
      * @return Optional InspectionDTO if found
      */
-    public Optional<InspectionDTO> getInspectionById(String inspectionNo) {
+    public Optional<InspectionDTO> getInspectionById(Long inspectionNo) {
         return inspectionRepository.findById(inspectionNo)
                 .map(inspection -> modelMapper.map(inspection, InspectionDTO.class));
     }
@@ -122,7 +122,7 @@ public class InspectionService {
      * @param inspectionDTO The updated inspection data
      * @return Updated InspectionDTO if found, empty Optional otherwise
      */
-    public Optional<InspectionDTO> updateInspection(String inspectionNo, InspectionDTO inspectionDTO) {
+    public Optional<InspectionDTO> updateInspection(Long inspectionNo, InspectionDTO inspectionDTO) {
         return inspectionRepository.findById(inspectionNo)
                 .map(existingInspection -> {
                     modelMapper.map(inspectionDTO, existingInspection);
@@ -137,7 +137,7 @@ public class InspectionService {
      * @param inspectionNo The inspection number to delete
      * @return true if deleted successfully, false if not found
      */
-    public boolean deleteInspection(String inspectionNo) {
+    public boolean deleteInspection(Long inspectionNo) {
         if (inspectionRepository.existsById(inspectionNo)) {
             inspectionRepository.deleteById(inspectionNo);
             return true;

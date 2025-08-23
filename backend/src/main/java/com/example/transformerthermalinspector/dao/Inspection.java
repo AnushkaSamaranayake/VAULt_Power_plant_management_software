@@ -20,10 +20,11 @@ import com.example.transformerthermalinspector.dao.Transformer;
 @AllArgsConstructor // Constructor with all fields
 public class Inspection {
 
-    // Primary key - user-provided inspection number
+    // Primary key - auto-generated inspection number
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "inspection_no", nullable = false)
-    private String inspectionNo;
+    private Long inspectionNo;
 
     // Branch conducting inspection - REQUIRED at creation
     @Column(name = "branch", nullable = false)
@@ -41,7 +42,7 @@ public class Inspection {
     @Column(name = "date_of_inspection_and_time", nullable = false)
     private LocalDateTime dateOfInspectionAndTime;
 
-    // Current state/condition of transformer - CAN BE NULL (determined later)
+    // Current status of the inspection - CAN BE NULL (determined later)
     @Column(name = "state", nullable = true)
     private String state;
 

@@ -17,7 +17,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/transformers")
-@CrossOrigin(origins = "*") // Configure this based on your frontend URL in production
+@CrossOrigin(origins = "*") 
 @RequiredArgsConstructor
 public class TransformerController {
 
@@ -77,36 +77,6 @@ public class TransformerController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error fetching transformer: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get transformers by region
-     * GET /api/transformers/region/{region}
-     */
-    @GetMapping("/region/{region}")
-    public ResponseEntity<?> getTransformersByRegion(@PathVariable String region) {
-        try {
-            List<TransformerDTO> transformers = transformerService.getTransformersByRegion(region);
-            return ResponseEntity.ok(transformers);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error fetching transformers by region: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get transformers by type
-     * GET /api/transformers/type/{type}
-     */
-    @GetMapping("/type/{type}")
-    public ResponseEntity<?> getTransformersByType(@PathVariable String type) {
-        try {
-            List<TransformerDTO> transformers = transformerService.getTransformersByType(type);
-            return ResponseEntity.ok(transformers);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error fetching transformers by type: " + e.getMessage());
         }
     }
 
