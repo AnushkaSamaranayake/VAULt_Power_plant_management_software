@@ -43,9 +43,9 @@ public class Transformer {
     @Column(name = "location_details", columnDefinition = "TEXT", nullable = false)
     private String locationDetails;
 
-    // Base64 encoded baseline image - CAN BE NULL (added later)
-    @Column(name = "baseline_image", columnDefinition = "TEXT", nullable = true)
-    private String baselineImage;
+    // File path to baseline image - CAN BE NULL (added later)
+    @Column(name = "baseline_image_path", nullable = true)
+    private String baselineImagePath;
 
     // When baseline image was uploaded - CAN BE NULL (added later)
     @Column(name = "baseline_image_upload_date_and_time", nullable = true)
