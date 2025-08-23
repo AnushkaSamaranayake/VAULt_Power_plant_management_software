@@ -13,7 +13,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/transformers" element={<Transformers />} />
-          <Route path="/transformers/:id" element={<InspectionDetails />} />
+          <Route path="/inspections/:inspec_no" element={<InspectionDetails />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Router>
