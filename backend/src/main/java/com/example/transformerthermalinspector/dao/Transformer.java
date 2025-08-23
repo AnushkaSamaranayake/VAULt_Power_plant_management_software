@@ -42,7 +42,11 @@ public class Transformer {
     @Column(name = "location_details", columnDefinition = "TEXT", nullable = false)
     private String locationDetails;
 
+<<<<<<< HEAD
     // Base64 encoded baseline thermal image - CAN BE NULL (added later)
+=======
+    // Base64 encoded baseline image - CAN BE NULL (added later)
+>>>>>>> ea7569e (created initial files for controller, config, dto, repository, and service packages)
     @Column(name = "baseline_image", columnDefinition = "TEXT", nullable = true)
     private String baselineImage;
 
