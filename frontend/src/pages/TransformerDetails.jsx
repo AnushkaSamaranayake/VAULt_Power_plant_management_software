@@ -9,7 +9,7 @@ import Footer from '../components/Footer'
 const TransformerDetails = () => {
 
     const { id } = useParams();
-    const inspection = inspections.find(inspection => inspection.inspec_no === id);
+    const inspection = inspections.find(inspection => inspection.id === id);
 
     return (
         <>
@@ -18,9 +18,9 @@ const TransformerDetails = () => {
                     <h1 className='text-3xl font-bold text-blue-900 mb-10'>Transformer</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
-                    <Head inspection={inspection} />
+                    <Head/>
                 </div>
-                <InspectionTable inspection={inspection} />
+                <InspectionTable/>
             </div>
             <Footer />
         </>
