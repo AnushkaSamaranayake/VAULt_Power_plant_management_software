@@ -2,13 +2,20 @@ package com.example.transformerthermalinspector.controller;
 
 import com.example.transformerthermalinspector.dto.InspectionDTO;
 import com.example.transformerthermalinspector.service.InspectionService;
+import com.example.transformerthermalinspector.service.ImageStorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +31,7 @@ import java.util.Optional;
 public class InspectionController {
 
     private final InspectionService inspectionService;
+    private final ImageStorageService imageStorageService;
 
     /**
      * Create a new inspection
@@ -124,6 +132,127 @@ public class InspectionController {
             }
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Upload maintenance image for an inspection
+     * POST /api/inspections/{inspectionNo}/maintenance-image
+     */
+    @PostMapping(value = "/{inspectionNo}/maintenance-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InspectionDTO> uploadMaintenanceImage(
+            @PathVariable("inspectionNo") Long inspectionNo,
+            @RequestParam("image") MultipartFile file,
+            @RequestParam(value = "weather", required = false) String weather) {
+        try {
+            if (file.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            
+            Optional<InspectionDTO> updatedInspection = inspectionService.uploadMaintenanceImage(inspectionNo, file, weather);
+            if (updatedInspection.isPresent()) {
+                return new ResponseEntity<>(updatedInspection.get(), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Delete maintenance image from inspection (without deleting inspection)
+     * DELETE /api/inspections/{inspectionNo}/maintenance-image
+     */
+    @DeleteMapping("/{inspectionNo}/maintenance-image")
+    public ResponseEntity<InspectionDTO> deleteMaintenanceImage(@PathVariable("inspectionNo") Long inspectionNo) {
+        try {
+            Optional<InspectionDTO> updatedInspection = inspectionService.deleteMaintenanceImage(inspectionNo);
+            
+            if (updatedInspection.isPresent()) {
+                return new ResponseEntity<>(updatedInspection.get(), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Serve maintenance image for an inspection
+     * GET /api/inspections/{inspectionNo}/maintenance-image
+     */
+    @GetMapping("/{inspectionNo}/maintenance-image")
+    public ResponseEntity<Resource> getMaintenanceImage(@PathVariable("inspectionNo") Long inspectionNo) {
+        try {
+            Optional<InspectionDTO> inspection = inspectionService.getInspectionById(inspectionNo);
+            if (inspection.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            
+            String imagePath = inspection.get().getMaintenanceImagePath();
+            if (imagePath == null || imagePath.trim().isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            
+            if (!imageStorageService.imageExists(imagePath, false)) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            
+            Path path = imageStorageService.getImagePath(imagePath, false);
+            Resource resource = new UrlResource(path.toUri());
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_JPEG)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + imagePath + "\"")
+                    .body(resource);
+                    
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Serve maintenance images by filename (for computed URLs)
+     * GET /api/inspections/images/{filename}
+     */
+    @GetMapping("/images/{filename}")
+    public ResponseEntity<Resource> getMaintenanceImageByFilename(@PathVariable String filename) {
+        try {
+            // Check if file exists
+            if (!imageStorageService.imageExists(filename, false)) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Path filePath = imageStorageService.getImagePath(filename, false);
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                // Determine content type from file extension
+                String contentType = "image/jpeg"; // Default
+                String filenameLower = filename.toLowerCase();
+                if (filenameLower.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (filenameLower.endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (filenameLower.endsWith(".webp")) {
+                    contentType = "image/webp";
+                }
+                
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

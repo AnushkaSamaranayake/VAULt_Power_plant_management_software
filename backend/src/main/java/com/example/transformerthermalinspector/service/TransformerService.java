@@ -163,6 +163,39 @@ public class TransformerService {
     }
 
     /**
+     * Delete baseline image from transformer (without deleting transformer)
+     * @param transformerNo The transformer number
+     * @return Updated TransformerDTO if found, empty Optional otherwise
+     */
+    public Optional<TransformerDTO> deleteBaselineImage(String transformerNo) {
+        return transformerRepository.findById(transformerNo)
+                .map(transformer -> {
+                    try {
+                        // Delete image file if exists
+                        if (transformer.getBaselineImagePath() != null && !transformer.getBaselineImagePath().trim().isEmpty()) {
+                            System.out.println("TransformerService - Deleting baseline image: " + transformer.getBaselineImagePath());
+                            imageStorageService.deleteImage(transformer.getBaselineImagePath(), true); // true = baseline
+                            System.out.println("TransformerService - Baseline image deleted successfully");
+                        }
+                        
+                        // Clear image-related fields from transformer
+                        transformer.setBaselineImagePath(null);
+                        transformer.setWeather(null);
+                        transformer.setBaselineImageUploadDateAndTime(null);
+                        
+                        // Save updated transformer
+                        Transformer savedTransformer = transformerRepository.save(transformer);
+                        return modelMapper.map(savedTransformer, TransformerDTO.class);
+                        
+                    } catch (IOException e) {
+                        System.err.println("Failed to delete baseline image: " + transformer.getBaselineImagePath());
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to delete baseline image", e);
+                    }
+                });
+    }
+
+    /**
      * Upload baseline image for a transformer
      * @param transformerNo The transformer number
      * @param imageFile The image file to upload

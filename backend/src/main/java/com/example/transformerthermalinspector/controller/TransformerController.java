@@ -127,24 +127,24 @@ public class TransformerController {
         }
     }
 
-    /**
-     * Upload baseline image for a specific transformer
+        /**
+     * Upload baseline image for a transformer with weather data
      * POST /api/transformers/{transformerNo}/baseline-image
      */
-    @PostMapping(value = "/{transformerNo}/baseline-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{transformerNo}/baseline-image", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadBaselineImage(
-            @PathVariable("transformerNo") String transformerNo,
+            @PathVariable String transformerNo,
             @RequestParam("image") MultipartFile imageFile,
             @RequestParam(value = "weather", required = false) String weather) {
-        
+            
         try {
             // Validate file
             if (imageFile.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Please select an image file to upload");
+                    .body("No image file provided");
             }
             
-            // Check file size (limit to 10MB)
+            // Check file size (10MB limit)
             if (imageFile.getSize() > 10 * 1024 * 1024) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("File size exceeds maximum limit of 10MB");
@@ -168,6 +168,28 @@ public class TransformerController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error uploading image: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete baseline image from transformer (without deleting transformer)
+     * DELETE /api/transformers/{transformerNo}/baseline-image
+     */
+    @DeleteMapping("/{transformerNo}/baseline-image")
+    public ResponseEntity<?> deleteBaselineImage(@PathVariable String transformerNo) {
+        try {
+            Optional<TransformerDTO> updatedTransformer = transformerService.deleteBaselineImage(transformerNo);
+            
+            if (updatedTransformer.isPresent()) {
+                return ResponseEntity.ok(updatedTransformer.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Transformer with number " + transformerNo + " not found");
+            }
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error deleting baseline image: " + e.getMessage());
         }
     }
 

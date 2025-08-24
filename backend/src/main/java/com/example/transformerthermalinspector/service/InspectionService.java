@@ -6,7 +6,9 @@ import com.example.transformerthermalinspector.repository.InspectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +24,7 @@ public class InspectionService {
 
     private final InspectionRepository inspectionRepository;
     private final ModelMapper modelMapper; // For Entity ↔ DTO conversion
+    private final ImageStorageService imageStorageService;
 
     /**
      * Retrieve all inspections from database
@@ -139,9 +142,100 @@ public class InspectionService {
      */
     public boolean deleteInspection(Long inspectionNo) {
         if (inspectionRepository.existsById(inspectionNo)) {
+            // Get the inspection to check for image
+            Optional<Inspection> inspectionOpt = inspectionRepository.findById(inspectionNo);
+            if (inspectionOpt.isPresent()) {
+                Inspection inspection = inspectionOpt.get();
+                // Delete maintenance image if exists
+                if (inspection.getMaintenanceImagePath() != null && !inspection.getMaintenanceImagePath().trim().isEmpty()) {
+                    try {
+                        System.out.println("InspectionService - Deleting maintenance image: " + inspection.getMaintenanceImagePath());
+                        imageStorageService.deleteImage(inspection.getMaintenanceImagePath(), false);
+                        System.out.println("InspectionService - Maintenance image deleted successfully");
+                    } catch (IOException e) {
+                        System.err.println("Failed to delete maintenance image: " + inspection.getMaintenanceImagePath());
+                        e.printStackTrace();
+                        // Continue with inspection deletion even if image deletion fails
+                    }
+                }
+            }
+            
             inspectionRepository.deleteById(inspectionNo);
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Delete maintenance image from inspection (without deleting inspection)
+     * @param inspectionNo The inspection number
+     * @return Updated InspectionDTO if found, empty Optional otherwise
+     */
+    public Optional<InspectionDTO> deleteMaintenanceImage(Long inspectionNo) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    try {
+                        // Delete image file if exists
+                        if (inspection.getMaintenanceImagePath() != null && !inspection.getMaintenanceImagePath().trim().isEmpty()) {
+                            System.out.println("InspectionService - Deleting maintenance image: " + inspection.getMaintenanceImagePath());
+                            imageStorageService.deleteImage(inspection.getMaintenanceImagePath(), false); // false = maintenance
+                            System.out.println("InspectionService - Maintenance image deleted successfully");
+                        }
+                        
+                        // Clear image-related fields from inspection
+                        inspection.setMaintenanceImagePath(null);
+                        inspection.setMaintenanceImageUploadDateAndTime(null);
+                        inspection.setWeather(null);
+                        
+                        // Save updated inspection
+                        Inspection savedInspection = inspectionRepository.save(inspection);
+                        return modelMapper.map(savedInspection, InspectionDTO.class);
+                        
+                    } catch (IOException e) {
+                        System.err.println("Failed to delete maintenance image: " + inspection.getMaintenanceImagePath());
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to delete maintenance image", e);
+                    }
+                });
+    }
+    
+    /**
+     * Upload maintenance image for an inspection
+     * @param inspectionNo The inspection number
+     * @param file The image file to upload
+     * @param weather The weather conditions during inspection (optional)
+     * @return Updated InspectionDTO with image path
+     */
+    public Optional<InspectionDTO> uploadMaintenanceImage(Long inspectionNo, MultipartFile file, String weather) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    try {
+                        // Delete old image if exists
+                        if (inspection.getMaintenanceImagePath() != null && !inspection.getMaintenanceImagePath().trim().isEmpty()) {
+                            System.out.println("InspectionService - Deleting old maintenance image: " + inspection.getMaintenanceImagePath());
+                            imageStorageService.deleteImage(inspection.getMaintenanceImagePath(), false);
+                        }
+                        
+                        // Store new image
+                        String filename = imageStorageService.storeMaintenanceImage(file, inspectionNo);
+                        inspection.setMaintenanceImagePath(filename);
+                        
+                        // Update image upload timestamp
+                        inspection.setMaintenanceImageUploadDateAndTime(LocalDateTime.now());
+                        
+                        // Update weather conditions if provided
+                        if (weather != null && !weather.trim().isEmpty()) {
+                            inspection.setWeather(weather.trim());
+                        }
+                        
+                        Inspection savedInspection = inspectionRepository.save(inspection);
+                        System.out.println("InspectionService - Maintenance image uploaded successfully: " + filename);
+                        return modelMapper.map(savedInspection, InspectionDTO.class);
+                    } catch (IOException e) {
+                        System.err.println("Failed to upload maintenance image for inspection: " + inspectionNo);
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to upload maintenance image", e);
+                    }
+                });
     }
 }

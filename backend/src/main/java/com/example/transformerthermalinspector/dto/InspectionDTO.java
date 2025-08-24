@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +23,7 @@ public class InspectionDTO {
     @NotBlank(message = "Branch is required")
     private String branch; // Department conducting inspection
     
-    private String maintenanceImage; // Base64 encoded inspection image 
+    private String maintenanceImagePath; // File path to maintenance inspection image (optional)
     
     @NotBlank(message = "Transformer number is required")
     private String transformerNo; // Foreign key to transformer
@@ -33,4 +34,10 @@ public class InspectionDTO {
     private String state; // status of the inspection
     private LocalDateTime maintenanceImageUploadDateAndTime; // Image upload timestamp
     private String weather; // Weather conditions during inspection
+    
+    // Computed property to provide maintenance image URL for frontend
+    @JsonProperty("maintenanceImageUrl")
+    public String getMaintenanceImageUrl() {
+        return maintenanceImagePath != null ? "/api/inspections/images/" + maintenanceImagePath : null;
+    }
 }
