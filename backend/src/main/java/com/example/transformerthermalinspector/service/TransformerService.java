@@ -48,40 +48,6 @@ public class TransformerService {
     }
 
     /**
-     * Alternative method name for getting transformer by number
-     * @param transformerNo The transformer number to search for
-     * @return Optional TransformerDTO if found
-     */
-    public Optional<TransformerDTO> getTransformerByTransformerNo(String transformerNo) {
-        return transformerRepository.findById(transformerNo)
-                .map(transformer -> modelMapper.map(transformer, TransformerDTO.class));
-    }
-
-    /**
-     * Find transformers by geographic region
-     * @param region The region to filter by
-     * @return List of transformers in the specified region
-     */
-    public List<TransformerDTO> getTransformersByRegion(String region) {
-        return transformerRepository.findByRegion(region)
-                .stream()
-                .map(transformer -> modelMapper.map(transformer, TransformerDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Find transformers by type/category
-     * @param type The type to filter by
-     * @return List of transformers of the specified type
-     */
-    public List<TransformerDTO> getTransformersByType(String type) {
-        return transformerRepository.findByType(type)
-                .stream()
-                .map(transformer -> modelMapper.map(transformer, TransformerDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Save a new transformer to the database
      * @param transformerDTO The transformer data to save
      * @return Saved TransformerDTO with any generated fields
@@ -128,7 +94,7 @@ public class TransformerService {
             if (transformer.getBaselineImagePath() != null && !transformer.getBaselineImagePath().trim().isEmpty()) {
                 try {
                     System.out.println("Attempting to delete image file: " + transformer.getBaselineImagePath());
-                    imageStorageService.deleteImage(transformer.getBaselineImagePath());
+                    imageStorageService.deleteImage(transformer.getBaselineImagePath(), true); // true = baseline
                     System.out.println("Successfully deleted baseline image: " + transformer.getBaselineImagePath());
                 } catch (IOException e) {
                     // Log warning but don't fail the deletion - database cleanup is more important
@@ -218,7 +184,7 @@ public class TransformerService {
         // Delete old image if exists
         if (transformer.getBaselineImagePath() != null) {
             try {
-                imageStorageService.deleteImage(transformer.getBaselineImagePath());
+                imageStorageService.deleteImage(transformer.getBaselineImagePath(), true); // true = baseline
             } catch (IOException e) {
                 // Log warning but continue - don't fail the upload for cleanup issues
                 System.err.println("Warning: Could not delete old image: " + e.getMessage());

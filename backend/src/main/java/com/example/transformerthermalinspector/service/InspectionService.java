@@ -60,55 +60,6 @@ public class InspectionService {
     }
 
     /**
-     * Find inspections by current state/condition
-     * @param state The state to filter by
-     * @return List of inspections with the specified state
-     */
-    public List<InspectionDTO> getInspectionsByState(String state) {
-        return inspectionRepository.findByState(state)
-                .stream()
-                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Find inspections by conducting branch/department
-     * @param branch The branch to filter by
-     * @return List of inspections conducted by the specified branch
-     */
-    public List<InspectionDTO> getInspectionsByBranch(String branch) {
-        return inspectionRepository.findByBranch(branch)
-                .stream()
-                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get inspections for a transformer ordered by date (newest first)
-     * @param transformerNo The transformer number to filter by
-     * @return List of inspections ordered by date descending
-     */
-    public List<InspectionDTO> getInspectionsByTransformerNoOrderByDate(String transformerNo) {
-        return inspectionRepository.findByTransformerNoOrderByDateDesc(transformerNo)
-                .stream()
-                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Find inspections within a specific date range
-     * @param startDate The start of the date range
-     * @param endDate The end of the date range
-     * @return List of inspections within the date range
-     */
-    public List<InspectionDTO> getInspectionsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        return inspectionRepository.findByDateRange(startDate, endDate)
-                .stream()
-                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Save a new inspection to the database
      * @param inspectionDTO The inspection data to save
      * @return Saved InspectionDTO with any generated fields
@@ -224,12 +175,18 @@ public class InspectionService {
                         inspection.setMaintenanceImageUploadDateAndTime(LocalDateTime.now());
                         
                         // Update weather conditions if provided
+                        System.out.println("InspectionService - Weather parameter received: '" + weather + "'");
                         if (weather != null && !weather.trim().isEmpty()) {
-                            inspection.setWeather(weather.trim());
+                            String weatherTrimmed = weather.trim();
+                            System.out.println("InspectionService - Setting weather to: '" + weatherTrimmed + "'");
+                            inspection.setWeather(weatherTrimmed);
+                        } else {
+                            System.out.println("InspectionService - Weather parameter is null or empty, not setting weather");
                         }
                         
                         Inspection savedInspection = inspectionRepository.save(inspection);
                         System.out.println("InspectionService - Maintenance image uploaded successfully: " + filename);
+                        System.out.println("InspectionService - Weather saved to DB: '" + savedInspection.getWeather() + "'");
                         return modelMapper.map(savedInspection, InspectionDTO.class);
                     } catch (IOException e) {
                         System.err.println("Failed to upload maintenance image for inspection: " + inspectionNo);

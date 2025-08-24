@@ -168,19 +168,6 @@ public class ImageStorageService {
     }
     
     /**
-     * Legacy method - determines image type from filename pattern and deletes
-     * @param filename The filename to delete
-     * @throws IOException If deletion fails
-     */
-    public void deleteImage(String filename) throws IOException {
-        if (filename != null && !filename.trim().isEmpty()) {
-            // Determine image type from filename pattern
-            boolean isBaseline = filename.contains("_baseline_");
-            deleteImage(filename, isBaseline);
-        }
-    }
-    
-    /**
      * Get the full path to an image file
      * @param filename The filename
      * @param isBaseline True for baseline images, false for maintenance images
@@ -189,16 +176,6 @@ public class ImageStorageService {
     public Path getImagePath(String filename, boolean isBaseline) {
         String directory = isBaseline ? baselineUploadDir : maintenanceUploadDir;
         return Paths.get(directory).resolve(filename);
-    }
-    
-    /**
-     * Legacy method - determines image type from filename pattern
-     * @param filename The filename
-     * @return The full path
-     */
-    public Path getImagePath(String filename) {
-        boolean isBaseline = filename.contains("_baseline_");
-        return getImagePath(filename, isBaseline);
     }
     
     /**
@@ -213,19 +190,6 @@ public class ImageStorageService {
         }
         Path filePath = getImagePath(filename, isBaseline);
         return Files.exists(filePath) && Files.isReadable(filePath);
-    }
-    
-    /**
-     * Legacy method - determines image type from filename pattern
-     * @param filename The filename to check
-     * @return true if file exists
-     */
-    public boolean imageExists(String filename) {
-        if (filename == null || filename.trim().isEmpty()) {
-            return false;
-        }
-        boolean isBaseline = filename.contains("_baseline_");
-        return imageExists(filename, isBaseline);
     }
     
     /**

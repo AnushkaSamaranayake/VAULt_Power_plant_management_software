@@ -6,9 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
-import com.example.transformerthermalinspector.dao.Inspection; 
+import java.util.List; 
 
 /**
  * Entity representing a transformer in the power plant management system.
@@ -55,7 +53,15 @@ public class Transformer {
     @Column(name = "weather", nullable = true)
     private String weather;
 
+    // Capacity of the transformer (e.g., "100 kVA", "500 MVA") - CAN BE NULL
+    @Column(name = "capacity", nullable = true)
+    private String capacity;
+
+    // Number of feeders connected to the transformer - CAN BE NULL
+    @Column(name = "number_of_feeders", nullable = true)
+    private Integer numberOfFeeders;
+
     // One transformer can have many inspections
     @OneToMany(mappedBy = "transformer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Inspection> inspections;
+    private List<com.example.transformerthermalinspector.dao.Inspection> inspections;
 }

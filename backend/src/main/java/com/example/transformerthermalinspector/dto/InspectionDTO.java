@@ -23,7 +23,7 @@ public class InspectionDTO {
     @NotBlank(message = "Branch is required")
     private String branch; // Department conducting inspection
     
-    private String maintenanceImagePath; // File path to maintenance inspection image (optional)
+    private String maintenanceImagePath; // File path to maintenance inspection image 
     
     @NotBlank(message = "Transformer number is required")
     private String transformerNo; // Foreign key to transformer
