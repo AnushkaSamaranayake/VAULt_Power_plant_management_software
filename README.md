@@ -68,6 +68,5 @@ The system follows a **modular architecture** to ensure **scalability** and **ma
 
 #### 1. Clone the repository
 ```bash
-git clone [https://github.com/your-username/en3350-vault.git](https://github.com/AnushkaSamaranayake/VAULt_Power_plant_management_software
-cd en3350-vault
+https://github.com/AnushkaSamaranayake/VAULt_Power_plant_management_software.git
 ```
