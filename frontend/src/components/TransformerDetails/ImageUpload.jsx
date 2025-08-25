@@ -51,6 +51,11 @@ const ImageUpload = () => {
         }
     };
 
+    const handleDeleteImage = () => {
+        setUploadImage(null);
+        setUploadProgress(0);
+    };
+
     const processFile = (file) => {
         setUploadProgress(0);
         setShowUploadModal(true);
@@ -94,10 +99,20 @@ const ImageUpload = () => {
                             </select>
                         </div>
                         <div className='space-y-4'>
-                            <label className='flex px-4 py-2 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 justify-center w-full'>
-                                Upload Image
-                                <input type="file" accept="image/*" onChange={handleFileChange} className='hidden' />
-                            </label>
+                            {uploadImage ? (
+                                <button 
+                                    onClick={handleDeleteImage}
+                                    className='flex px-4 py-2 bg-red-500 text-white text-sm rounded-lg cursor-pointer hover:bg-red-600 justify-center w-full'
+                                    type="button"
+                                >
+                                    Delete Image
+                                </button>
+                            ) : (
+                                <label className='flex px-4 py-2 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 justify-center w-full'>
+                                    Upload Image
+                                    <input type="file" accept="image/*" onChange={handleFileChange} className='hidden' />
+                                </label>
+                            )}
                             
                             {/* Drag & Drop Area */}
                             <div
