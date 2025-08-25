@@ -30,9 +30,9 @@ public class Inspection {
     @Column(name = "branch", nullable = false)
     private String branch;
 
-    // Base64 encoded maintenance/inspection image - CAN BE NULL (added later)
-    @Column(name = "maintenance_image", columnDefinition = "TEXT", nullable = true)
-    private String maintenanceImage;
+    // File path to maintenance/inspection image - CAN BE NULL (added later)
+    @Column(name = "maintenance_image_path", nullable = true)
+    private String maintenanceImagePath;
 
     // Foreign key to transformer table - REQUIRED at creation
     @Column(name = "transformer_no", nullable = false)

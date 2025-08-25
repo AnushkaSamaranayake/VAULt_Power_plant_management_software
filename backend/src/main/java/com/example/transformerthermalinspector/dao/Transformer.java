@@ -6,9 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
-import com.example.transformerthermalinspector.dao.Inspection; 
+import java.util.List; 
 
 /**
  * Entity representing a transformer in the power plant management system.
@@ -43,9 +41,9 @@ public class Transformer {
     @Column(name = "location_details", columnDefinition = "TEXT", nullable = false)
     private String locationDetails;
 
-    // Base64 encoded baseline image - CAN BE NULL (added later)
-    @Column(name = "baseline_image", columnDefinition = "TEXT", nullable = true)
-    private String baselineImage;
+    // File path to baseline image - CAN BE NULL (added later)
+    @Column(name = "baseline_image_path", nullable = true)
+    private String baselineImagePath;
 
     // When baseline image was uploaded - CAN BE NULL (added later)
     @Column(name = "baseline_image_upload_date_and_time", nullable = true)
@@ -55,7 +53,15 @@ public class Transformer {
     @Column(name = "weather", nullable = true)
     private String weather;
 
+    // Capacity of the transformer (e.g., "100 kVA", "500 MVA") - CAN BE NULL
+    @Column(name = "capacity", nullable = true)
+    private String capacity;
+
+    // Number of feeders connected to the transformer - CAN BE NULL
+    @Column(name = "number_of_feeders", nullable = true)
+    private Integer numberOfFeeders;
+
     // One transformer can have many inspections
     @OneToMany(mappedBy = "transformer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Inspection> inspections;
+    private List<com.example.transformerthermalinspector.dao.Inspection> inspections;
 }

@@ -3,11 +3,17 @@ package com.example.transformerthermalinspector.controller;
 import com.example.transformerthermalinspector.dto.TransformerDTO;
 import com.example.transformerthermalinspector.service.TransformerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +65,7 @@ public class TransformerController {
                 .body("Error fetching transformers: " + e.getMessage());
         }
     }
+
 
     /**
      * Get transformer by transformer number
@@ -118,6 +125,102 @@ public class TransformerController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error deleting transformer: " + e.getMessage());
+        }
+    }
+
+        /**
+     * Upload baseline image for a transformer with weather data
+     * POST /api/transformers/{transformerNo}/baseline-image
+     */
+    @PostMapping(value = "/{transformerNo}/baseline-image", consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadBaselineImage(
+            @PathVariable String transformerNo,
+            @RequestParam("image") MultipartFile imageFile,
+            @RequestParam(value = "weather", required = false) String weather) {
+            
+        try {
+            // Validate file
+            if (imageFile.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("No image file provided");
+            }
+            
+            // Check file size (10MB limit)
+            if (imageFile.getSize() > 10 * 1024 * 1024) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("File size exceeds maximum limit of 10MB");
+            }
+            
+            // Check file type
+            String contentType = imageFile.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Only image files are allowed");
+            }
+            
+            TransformerDTO updatedTransformer = transformerService.uploadBaselineImage(
+                transformerNo, imageFile, weather);
+                
+            return ResponseEntity.ok(updatedTransformer);
+            
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Transformer with number " + transformerNo + " not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error uploading image: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete baseline image from transformer (without deleting transformer)
+     * DELETE /api/transformers/{transformerNo}/baseline-image
+     */
+    @DeleteMapping("/{transformerNo}/baseline-image")
+    public ResponseEntity<?> deleteBaselineImage(@PathVariable String transformerNo) {
+        try {
+            Optional<TransformerDTO> updatedTransformer = transformerService.deleteBaselineImage(transformerNo);
+            
+            if (updatedTransformer.isPresent()) {
+                return ResponseEntity.ok(updatedTransformer.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Transformer with number " + transformerNo + " not found");
+            }
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error deleting baseline image: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Serve baseline images
+     * GET /api/images/{filename}
+     */
+    @GetMapping("/images/{filename}")
+    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
+        try {
+            Path filePath = Paths.get("uploads/images").resolve(filename);
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                // Determine content type
+                String contentType = "image/jpeg"; // Default
+                if (filename.toLowerCase().endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (filename.toLowerCase().endsWith(".gif")) {
+                    contentType = "image/gif";
+                }
+                
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
