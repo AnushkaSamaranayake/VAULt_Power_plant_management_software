@@ -38,10 +38,29 @@ const TransformerTable = ({ activeTable }) => {
     //         .catch((err) => console.error("Error fetching table inspections:", err));
     // }, []);
 
+    // Get unique transformer IDs
+    const uniqueTransformerIds = [...new Set(transformers.map(t => t.id))];
+
     return (
         <div>
             {activeTable === "transformers" && (
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mx-5 mt-10">
+                    {/* Filter Block */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                        <div className="w-64">
+                            <select 
+                                className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                defaultValue=""
+                            >
+                                <option value="" disabled>By Transformer Number</option>
+                                {uniqueTransformerIds.map(id => (
+                                    <option key={id} value={id}>{id}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Table Header */}
                     <div className="grid grid-cols-5 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Pole No</div>
