@@ -7,7 +7,6 @@ const ImageUpload = () => {
     const { id } = useParams();
     const transformer = inspection.find(transformer => transformer.id === id);
 
-    const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadImage, setUploadImage] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -64,21 +63,15 @@ const ImageUpload = () => {
 
     const processFile = (file) => {
         setUploadProgress(0);
-        setShowUploadModal(true);
-
+        
         let progress = 0;
         const interval = setInterval(() => {
             progress += 10;
             setUploadProgress(progress);
             if (progress >= 100) {
                 clearInterval(interval);
-
                 const imgUrl = URL.createObjectURL(file);
                 setUploadImage(imgUrl);
-
-                setTimeout(() => {
-                    setShowUploadModal(false);
-                }, 500);
             }
         }, 300);
     };
@@ -164,19 +157,6 @@ const ImageUpload = () => {
                                 )}
                             </div>
                         </div>
-                        {showUploadModal && (
-                            <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-40'>
-                                <div className='bg-white p-6 rounded-lg shadow-lg w-96'>
-                                    <h3 className='text-lg font-semibold mb-4'>Uploading.....</h3>
-                                    <div className='w-full bg-gray-200 rounded-full h-4 overflow-hidden'>
-                                        <div className='bg-blue-500 h-4 transition-all duration-200'
-                                        style={{ width: `${uploadProgress}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className='text-right text-gray-500 text-sm mt-2'>{uploadProgress}%</p>
-                                </div>
-                            </div>
-                        )}
                     </form>
                 </div>
 
