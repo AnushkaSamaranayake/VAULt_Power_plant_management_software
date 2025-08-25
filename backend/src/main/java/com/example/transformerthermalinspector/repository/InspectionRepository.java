@@ -32,10 +32,4 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     // Find inspections within a date range
     @Query("SELECT i FROM Inspection i WHERE i.dateOfInspectionAndTime BETWEEN :startDate AND :endDate")
     List<Inspection> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
-    
-    // Find inspections for a specific transformer within a date range
-    @Query("SELECT i FROM Inspection i WHERE i.transformerNo = :transformerNo AND i.dateOfInspectionAndTime BETWEEN :startDate AND :endDate")
-    List<Inspection> findByTransformerNoAndDateRange(@Param("transformerNo") String transformerNo, 
-                                                   @Param("startDate") LocalDateTime startDate, 
-                                                   @Param("endDate") LocalDateTime endDate);
 }
