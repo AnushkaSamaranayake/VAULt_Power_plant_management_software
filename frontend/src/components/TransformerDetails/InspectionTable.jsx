@@ -33,7 +33,7 @@ const InspectionTable = ({inspections}) => {
             </div>
 
             {inspections.map((inspection) => (
-                <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4">
+                <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4 hover:scale-110 transition duration-700">
                     <div className="text-xs">{inspection.inspectionNo}</div>
                     <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
                     <div className="text-xs">{inspection.maintainDate}</div>
