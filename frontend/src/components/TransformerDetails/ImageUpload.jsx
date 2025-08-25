@@ -11,6 +11,7 @@ const ImageUpload = () => {
     const [uploadImage, setUploadImage] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [isConfirmed, setIsConfirmed] = useState(false);
 
     const getStatusColor = (Ti_status) => {
         switch (Ti_status) {
@@ -54,6 +55,11 @@ const ImageUpload = () => {
     const handleDeleteImage = () => {
         setUploadImage(null);
         setUploadProgress(0);
+        setIsConfirmed(false);
+    };
+
+    const handleConfirmUpload = () => {
+        setIsConfirmed(true);
     };
 
     const processFile = (file) => {
@@ -100,13 +106,28 @@ const ImageUpload = () => {
                         </div>
                         <div className='space-y-4'>
                             {uploadImage ? (
-                                <button 
-                                    onClick={handleDeleteImage}
-                                    className='flex px-4 py-2 bg-red-500 text-white text-sm rounded-lg cursor-pointer hover:bg-red-600 justify-center w-full'
-                                    type="button"
-                                >
-                                    Delete Image
-                                </button>
+                                isConfirmed ? (
+                                    <div className="flex px-4 py-2 bg-green-100 text-green-800 text-sm rounded-lg justify-center w-full border border-green-200">
+                                        Image Successfully Uploaded
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2 w-full">
+                                        <button 
+                                            onClick={handleDeleteImage}
+                                            className='flex px-4 py-2 bg-red-500 text-white text-sm rounded-lg cursor-pointer hover:bg-red-600 justify-center flex-1'
+                                            type="button"
+                                        >
+                                            Delete Image
+                                        </button>
+                                        <button 
+                                            onClick={handleConfirmUpload}
+                                            className='flex px-4 py-2 bg-green-500 text-white text-sm rounded-lg cursor-pointer hover:bg-green-600 justify-center flex-1'
+                                            type="button"
+                                        >
+                                            Confirm Upload
+                                        </button>
+                                    </div>
+                                )
                             ) : (
                                 <label className='flex px-4 py-2 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 justify-center w-full'>
                                     Upload Image
