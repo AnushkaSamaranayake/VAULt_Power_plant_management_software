@@ -38,8 +38,10 @@ const TransformerTable = ({ activeTable }) => {
     //         .catch((err) => console.error("Error fetching table inspections:", err));
     // }, []);
 
-    // Get unique transformer IDs
+    // Get unique transformer IDs, regions and types
     const uniqueTransformerIds = [...new Set(transformers.map(t => t.id))];
+    const uniqueRegions = [...new Set(transformers.map(t => t.region))];
+    const uniqueTypes = [...new Set(transformers.map(t => t.type))];
 
     return (
         <div>
@@ -48,7 +50,7 @@ const TransformerTable = ({ activeTable }) => {
                     {/* Filter Block */}
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
                         <div className="flex space-x-4 items-center">
-                            <div className="w-64">
+                            <div className="w-55">
                                 <select 
                                     className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     defaultValue=""
@@ -59,7 +61,7 @@ const TransformerTable = ({ activeTable }) => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="flex-1 relative">
+                            <div className="w-55 relative">
                                 <div className="flex">
                                     <input
                                         type="text"
@@ -83,6 +85,28 @@ const TransformerTable = ({ activeTable }) => {
                                         </svg>
                                     </button>
                                 </div>
+                            </div>
+                            <div className="w-60">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>All Regions</option>
+                                    {uniqueRegions.map(region => (
+                                        <option key={region} value={region}>{region}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="w-60">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>All Types</option>
+                                    {uniqueTypes.map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>
