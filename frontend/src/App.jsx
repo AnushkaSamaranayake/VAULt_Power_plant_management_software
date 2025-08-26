@@ -6,10 +6,12 @@ import Transformers from './pages/Transformers'
 import InspectionDetails from './pages/InspectionDetails'
 import TransformerDetails from './pages/TransformerDetails'
 import Settings from './pages/Settings'
+import SideBar from './components/Dashboard/SideBar'
+import AccountBar from './components/AccountBar'
 
 const App = () => {
   return (
-    <div>
+    <div className="flex">
       <Router>
         <Routes>
           <Route path="/" element={<Dashboard />} />

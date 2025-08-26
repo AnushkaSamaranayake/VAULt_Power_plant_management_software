@@ -4,13 +4,13 @@ import { useParams } from 'react-router';
 import inspection from '../../constants/inspections.json'
 
 const ImageUpload = () => {
-
     const { id } = useParams();
     const transformer = inspection.find(transformer => transformer.id === id);
 
-    const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadImage, setUploadImage] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isConfirmed, setIsConfirmed] = useState(false);
 
     const getStatusColor = (Ti_status) => {
         switch (Ti_status) {
@@ -28,23 +28,50 @@ const ImageUpload = () => {
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (!file) return;
+        processFile(file);
+    };
 
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            processFile(file);
+        }
+    };
+
+    const handleDeleteImage = () => {
+        setUploadImage(null);
         setUploadProgress(0);
-        setShowUploadModal(true);
+        setIsConfirmed(false);
+    };
 
+    const handleConfirmUpload = () => {
+        setIsConfirmed(true);
+    };
+
+    const processFile = (file) => {
+        setUploadProgress(0);
+        
         let progress = 0;
         const interval = setInterval(() => {
             progress += 10;
             setUploadProgress(progress);
             if (progress >= 100) {
                 clearInterval(interval);
-
                 const imgUrl = URL.createObjectURL(file);
                 setUploadImage(imgUrl);
-
-                setTimeout(() => {
-                    setShowUploadModal(false);
-                }, 500);
             }
         }, 300);
     };
@@ -70,25 +97,66 @@ const ImageUpload = () => {
                                 <option value="snowy">Snowy</option>
                             </select>
                         </div>
-                        <div className='mb-4'>
-                            <label className='flex px-4 py-2 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 justify-center'>
-                                Upload Image
-                                <input type="file" accept="image/*" onChange={handleFileChange} className='hidden' />
-                            </label>
-                        </div>
-                        {showUploadModal && (
-                            <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-40'>
-                                <div className='bg-white p-6 rounded-lg shadow-lg w-96'>
-                                    <h3 className='text-lg font-semibold mb-4'>Uploading.....</h3>
-                                    <div className='w-full bg-gray-200 rounded-full h-4 overflow-hidden'>
-                                        <div className='bg-blue-500 h-4 transition-all duration-200'
-                                        style={{ width: `${uploadProgress}%` }}
-                                        ></div>
+                        <div className='space-y-4'>
+                            {uploadImage ? (
+                                isConfirmed ? (
+                                    <div className="flex px-4 py-2 bg-green-100 text-green-800 text-sm rounded-lg justify-center w-full border border-green-200">
+                                        Image Successfully Uploaded
                                     </div>
-                                    <p className='text-right text-gray-500 text-sm mt-2'>{uploadProgress}%</p>
-                                </div>
+                                ) : (
+                                    <div className="flex gap-2 w-full">
+                                        <button 
+                                            onClick={handleDeleteImage}
+                                            className='flex px-4 py-2 bg-red-500 text-white text-sm rounded-lg cursor-pointer hover:bg-red-600 justify-center flex-1'
+                                            type="button"
+                                        >
+                                            Delete Image
+                                        </button>
+                                        <button 
+                                            onClick={handleConfirmUpload}
+                                            className='flex px-4 py-2 bg-green-500 text-white text-sm rounded-lg cursor-pointer hover:bg-green-600 justify-center flex-1'
+                                            type="button"
+                                        >
+                                            Confirm Upload
+                                        </button>
+                                    </div>
+                                )
+                            ) : (
+                                <label className='flex px-4 py-2 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 justify-center w-full'>
+                                    Upload Image
+                                    <input type="file" accept="image/*" onChange={handleFileChange} className='hidden' />
+                                </label>
+                            )}
+                            
+                            {/* Drag & Drop Area */}
+                            <div
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`
+                                    flex flex-col items-center justify-center
+                                    h-32 p-4 border-2 border-dashed rounded-xl
+                                    ${isDragging 
+                                        ? 'border-blue-400 bg-blue-50' 
+                                        : 'border-gray-300 bg-gray-50'
+                                    }
+                                    transition-colors duration-200
+                                `}
+                            >
+                                {uploadImage ? (
+                                    <img
+                                        src={uploadImage}
+                                        alt="Uploaded preview"
+                                        className="max-h-full rounded-lg shadow-sm"
+                                    />
+                                ) : (
+                                    <div className="text-center">
+                                        <p className="text-gray-500 text-sm">Drag and Drop Image to upload</p>
+                                        <p className="text-gray-400 text-xs mt-1">or use the upload button above</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </form>
                 </div>
 

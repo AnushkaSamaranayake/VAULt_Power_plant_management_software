@@ -21,10 +21,121 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
 
     const navigate = useNavigate();
 
+    // const [transformers, setTransformers] = useState([]);
+    // const [inspections, setInspections] = useState([]);
+
+    // useEffect(() => {
+    //     // Fetch Table 1 data
+    //     fetch("http://localhost:5000/api/transformers")
+    //         .then((res) => res.json())
+    //         .then((data) => setTransformers(data))
+    //         .catch((err) => console.error("Error fetching table transformers:", err));
+
+    //     // Fetch Table 2 data
+    //     fetch("http://localhost:5000/api/inspections")
+    //         .then((res) => res.json())
+    //         .then((data) => setInspections(data))
+    //         .catch((err) => console.error("Error fetching table inspections:", err));
+    // }, []);
+
+    // Get unique values for filters
+    const uniqueTransformerIds = [...new Set(transformers.map(t => t.id))];
+    const uniqueRegions = [...new Set(transformers.map(t => t.region))];
+    const uniqueTypes = [...new Set(transformers.map(t => t.type))];
+    const uniqueDates = [...new Set(inspections.map(i => i.inspec_date))];
+
+    // Filter state
+    const [selectedTransformer, setSelectedTransformer] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedRegion, setSelectedRegion] = useState("");
+    const [selectedType, setSelectedType] = useState("");
+    const [selectedDate, setSelectedDate] = useState("");
+
     return (
         <div>
             {activeTable === "transformers" && (
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mx-5 mt-10">
+                    {/* Filter Block */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                        <div className="flex space-x-4 items-center">
+                            <div className="w-55">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    value={selectedTransformer}
+                                    onChange={(e) => setSelectedTransformer(e.target.value)}
+                                >
+                                    <option value="" disabled className="text-gray-400">By Transformer Number</option>
+                                    {uniqueTransformerIds.map(id => (
+                                        <option key={id} value={id}>{id}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="w-55 relative">
+                                <div className="flex">
+                                    <input
+                                        type="text"
+                                        placeholder="Search Transformer"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full rounded-l-md border border-r-0 border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button className="px-3 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border border-blue-500">
+                                        <svg 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            className="h-5 w-5" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24" 
+                                            stroke="currentColor"
+                                        >
+                                            <path 
+                                                strokeLinecap="round" 
+                                                strokeLinejoin="round" 
+                                                strokeWidth={2} 
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="w-60">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    value={selectedRegion}
+                                    onChange={(e) => setSelectedRegion(e.target.value)}
+                                >
+                                    <option value="" disabled className="text-gray-400">All Regions</option>
+                                    {uniqueRegions.map(region => (
+                                        <option key={region} value={region}>{region}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="w-60">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    value={selectedType}
+                                    onChange={(e) => setSelectedType(e.target.value)}
+                                >
+                                    <option value="" disabled className="text-gray-400">All Types</option>
+                                    {uniqueTypes.map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedTransformer("");
+                                    setSearchQuery("");
+                                    setSelectedRegion("");
+                                    setSelectedType("");
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                            >
+                                Reset All Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table Header */}
                     <div className="grid grid-cols-5 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Pole No</div>
@@ -48,6 +159,70 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
 
             {activeTable === "inspections" && (
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mx-5 mt-10">
+                    {/* Filter Block */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+                        <div className="flex space-x-4 items-center">
+                            <div className="w-55">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled className="text-gray-400">By Transformer Number</option>
+                                    {uniqueTransformerIds.map(id => (
+                                        <option key={id} value={id}>{id}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="w-55 relative">
+                                <div className="flex">
+                                    <input
+                                        type="text"
+                                        placeholder="Search Transformer"
+                                        className="w-full rounded-l-md border border-r-0 border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button className="px-3 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border border-blue-500">
+                                        <svg 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            className="h-5 w-5" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24" 
+                                            stroke="currentColor"
+                                        >
+                                            <path 
+                                                strokeLinecap="round" 
+                                                strokeLinejoin="round" 
+                                                strokeWidth={2} 
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="w-60">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled className="text-gray-400">All Time</option>
+                                    {[...new Set(inspections.map(i => i.inspec_date))].map(date => (
+                                        <option key={date} value={date}>{date}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedTransformer("");
+                                    setSearchQuery("");
+                                    setSelectedDate("");
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                            >
+                                Reset All Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table Header */}
                     <div className="grid grid-cols-6 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Inspection No</div>
