@@ -47,16 +47,43 @@ const TransformerTable = ({ activeTable }) => {
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mx-5 mt-10">
                     {/* Filter Block */}
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
-                        <div className="w-64">
-                            <select 
-                                className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                defaultValue=""
-                            >
-                                <option value="" disabled>By Transformer Number</option>
-                                {uniqueTransformerIds.map(id => (
-                                    <option key={id} value={id}>{id}</option>
-                                ))}
-                            </select>
+                        <div className="flex space-x-4 items-center">
+                            <div className="w-64">
+                                <select 
+                                    className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>By Transformer Number</option>
+                                    {uniqueTransformerIds.map(id => (
+                                        <option key={id} value={id}>{id}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-1 relative">
+                                <div className="flex">
+                                    <input
+                                        type="text"
+                                        placeholder="Search Transformer"
+                                        className="w-full rounded-l-md border border-r-0 border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button className="px-3 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 border border-blue-500">
+                                        <svg 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            className="h-5 w-5" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24" 
+                                            stroke="currentColor"
+                                        >
+                                            <path 
+                                                strokeLinecap="round" 
+                                                strokeLinejoin="round" 
+                                                strokeWidth={2} 
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
