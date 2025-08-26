@@ -64,7 +64,7 @@ const TransformerTable = ({ activeTable }) => {
                                     value={selectedTransformer}
                                     onChange={(e) => setSelectedTransformer(e.target.value)}
                                 >
-                                    <option value="">By Transformer Number</option>
+                                    <option value="" disabled className="text-gray-400">By Transformer Number</option>
                                     {uniqueTransformerIds.map(id => (
                                         <option key={id} value={id}>{id}</option>
                                     ))}
@@ -103,7 +103,7 @@ const TransformerTable = ({ activeTable }) => {
                                     value={selectedRegion}
                                     onChange={(e) => setSelectedRegion(e.target.value)}
                                 >
-                                    <option value="">All Regions</option>
+                                    <option value="" disabled className="text-gray-400">All Regions</option>
                                     {uniqueRegions.map(region => (
                                         <option key={region} value={region}>{region}</option>
                                     ))}
@@ -115,12 +115,23 @@ const TransformerTable = ({ activeTable }) => {
                                     value={selectedType}
                                     onChange={(e) => setSelectedType(e.target.value)}
                                 >
-                                    <option value="">All Types</option>
+                                    <option value="" disabled className="text-gray-400">All Types</option>
                                     {uniqueTypes.map(type => (
                                         <option key={type} value={type}>{type}</option>
                                     ))}
                                 </select>
                             </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedTransformer("");
+                                    setSearchQuery("");
+                                    setSelectedRegion("");
+                                    setSelectedType("");
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                            >
+                                Reset All Filters
+                            </button>
                         </div>
                     </div>
 
@@ -156,7 +167,7 @@ const TransformerTable = ({ activeTable }) => {
                                     className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     defaultValue=""
                                 >
-                                    <option value="" disabled>By Transformer Number</option>
+                                    <option value="" disabled className="text-gray-400">By Transformer Number</option>
                                     {uniqueTransformerIds.map(id => (
                                         <option key={id} value={id}>{id}</option>
                                     ))}
@@ -192,12 +203,22 @@ const TransformerTable = ({ activeTable }) => {
                                     className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     defaultValue=""
                                 >
-                                    <option value="" disabled>All Time</option>
+                                    <option value="" disabled className="text-gray-400">All Time</option>
                                     {[...new Set(inspections.map(i => i.inspec_date))].map(date => (
                                         <option key={date} value={date}>{date}</option>
                                     ))}
                                 </select>
                             </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedTransformer("");
+                                    setSearchQuery("");
+                                    setSelectedDate("");
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                            >
+                                Reset All Filters
+                            </button>
                         </div>
                     </div>
 
