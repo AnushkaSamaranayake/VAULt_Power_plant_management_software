@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import logo from '../../assets/GridWatchLogo.png' // You can replace this with your actual logo path
 
 const SideBar = () => {
   return (
@@ -7,8 +8,9 @@ const SideBar = () => {
       <div className="flex flex-col h-full">
         {/* Logo/Brand Section */}
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-blue-900">VAULT</h1>
-          <p className="text-xs text-gray-500">Power Plant Management</p>
+          <div className="flex justify-center w-full">
+            <img src={logo} alt="GridWatch Logo" className="w-32 object-contain" />
+          </div>
         </div>
 
         {/* Navigation Links */}
