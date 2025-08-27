@@ -66,8 +66,106 @@ The system follows a **modular architecture** to ensure **scalability** and **ma
 
 ### Steps
 
-#### 1. Clone the repository
+#### Clone the repository 💻
 ```bash
-git clone [https://github.com/your-username/en3350-vault.git](https://github.com/AnushkaSamaranayake/VAULt_Power_plant_management_software
-cd en3350-vault
+git clone https://github.com/AnushkaSamaranayake/VAULt_Power_plant_management_software.git
+cd VAULt_Power_plant_management_software/backend
 ```
+
+#### Install Dependencies 📦
+
+```bash
+mvn clean install
+```
+
+### PostgreSQL setup 🐘
+
+1. Log into PostgreSQL
+
+```bash
+psql -U postgres
+```
+2. Create a database and user
+
+```bash
+CREATE DATABASE transformerdb;
+CREATE USER springuser WITH PASSWORD 'secretpassword';
+GRANT ALL PRIVILEGES ON DATABASE transformerdb TO springuser;
+```
+### Define environment variables
+
+Create a .env file inside the backend/ directory:
+
+```bash
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=transformerdb
+DB_USERNAME=springuser
+DB_PASSWORD=secretpassword
+
+```
+
+### Configure Spring Boot
+
+Update src/main/resources/application.properties to use environment variables:
+
+```bash
+spring.application.name=transformerthermalinspector
+
+# Import .env file (optional, Spring Boot 2.4+)
+spring.config.import=optional:file:.env
+
+# PostgreSQL connection with defaults
+spring.datasource.url=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+
+# JPA settings
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# File upload settings
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+app.upload.dir=uploads/images
+
+# Logging
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+logging.level.org.springframework.jdbc.core.JdbcTemplate=DEBUG
+logging.level.org.springframework.jdbc.core.StatementCreatorUtils=TRACE
+
+```
+🔔 Note: If using the .env file, make sure you have the dependency in your pom.xml:
+
+```bash
+<dependency>
+  <groupId>me.paulschwarz</groupId>
+  <artifactId>spring-dotenv</artifactId>
+  <version>2.5.4</version>
+</dependency>
+
+```
+This library automatically loads .env into Spring Boot.
+___
+### ▶️ Running the Application
+
+Run with Maven:
+
+```bash
+mvn spring-boot:run
+```
+The backend will be available at:
+👉 http://localhost:8080
+
+___
+
+## Frontend Setup
+
+
+
+
+
+
+
