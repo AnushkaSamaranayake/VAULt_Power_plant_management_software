@@ -9,8 +9,8 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
     const [deletingTransformerId, setDeletingTransformerId] = useState(null);
     const [deletingInspectionId, setDeletingInspectionId] = useState(null);
 
-    const getStatusColor = (status) => {
-        switch (status) {
+    const getStatusColor = (state) => {
+        switch (state) {
             case "Pending":
                 return "border-red-400 bg-red-300 text-red-800 ";
             case "In progress":
@@ -131,8 +131,12 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                                 <div className="text-xs">{inspection.transformerNo}</div>
                                 <div className="text-xs">{inspection.inspectionNo}</div>
                                 <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
-                                <div className="text-xs">{inspection.maintainDate}</div>
-                                <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
+                                <div className="text-xs">
+                                    {inspection.maintenanceImageUploadDateAndTime ? 
+                                        new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleString() 
+                                        : 'Not maintained yet'}
+                                </div>
+                                <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.state)}`}>{inspection.state}</div>
                                 <div className="flex items-center space-x-1">
                                     <button 
                                         onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} 

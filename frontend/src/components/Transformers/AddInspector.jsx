@@ -9,7 +9,8 @@ const AddInspector = ({onClose, onInspectionAdded}) => {
     const [formData, setFormData] = useState({
         branch: "",
         transformerNo: "",
-        dateOfInspectionAndTime: ""
+        dateOfInspectionAndTime: "",
+        state: "Pending"
     });
 
     const handleSubmit = async (e) => {
@@ -20,10 +21,12 @@ const AddInspector = ({onClose, onInspectionAdded}) => {
                 {headers: {"Content-Type": "application/json"},}
             );
             console.log("Inspection created:", response.data);
+            // Log specifically to check the maintenance date field
+            console.log("Maintenance Image Upload Date:", response.data.maintenanceImageUploadDateAndTime);
             alert("Inspection added successfully!");
 
             // Reset form
-            setFormData({ branch: "", transformerNo: "", dateOfInspectionAndTime: "" });
+            setFormData({ branch: "", transformerNo: "", dateOfInspectionAndTime: "",});
             
             // Notify parent component to refresh the inspection list
             if (onInspectionAdded) {

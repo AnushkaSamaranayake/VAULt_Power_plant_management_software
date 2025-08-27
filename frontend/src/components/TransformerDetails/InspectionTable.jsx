@@ -10,12 +10,12 @@ const InspectionTable = ({inspections, onInspectionDeleted}) => {
     const [deletingId, setDeletingId] = useState(null);
 
     const getStatusColor = (status) => {
-        switch (status) {
-            case "Pending":
+        switch (status?.toLowerCase()) {
+            case "pending":
                 return "border-red-400 bg-red-300 text-red-800 ";
-            case "In progress":
+            case "in progress":
                 return "border-blue-400 bg-blue-300 text-blue-800";
-            case "Completed":
+            case "completed":
                 return "border-green-400 bg-green-300 text-green-800";
             default:
                 return "border-gray-400 bg-gray-300 text-gray-800";
@@ -59,7 +59,7 @@ const InspectionTable = ({inspections, onInspectionDeleted}) => {
                         <div className="text-xs">{inspection.inspectionNo}</div>
                         <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
                         <div className="text-xs">{inspection.maintainDate}</div>
-                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
+                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.state)}`}>{inspection.state}</div>
                         <div className="flex items-center space-x-2">
                             <button 
                                 onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} 

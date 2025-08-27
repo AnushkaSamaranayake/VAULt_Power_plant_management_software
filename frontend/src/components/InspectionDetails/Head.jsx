@@ -17,12 +17,12 @@ const Head = ({ inspection }) => {
         }, []);
 
     const getStatusColor = (status) => {
-        switch (status) {
-            case "Pending":
+        switch (status?.toLowerCase()) {
+            case "pending":
                 return "border-red-400 bg-red-300 text-red-800 ";
-            case "In progress":
+            case "in progress":
                 return "border-blue-400 bg-blue-300 text-blue-800";
-            case "Completed":
+            case "completed":
                 return "border-green-400 bg-green-300 text-green-800";
             default:
                 return "border-gray-400 bg-gray-300 text-gray-800";
@@ -38,7 +38,7 @@ const Head = ({ inspection }) => {
                     </div>
                     <div className='flex flex-row items-center space-x-4'>
                         <p className='text-xs text-gray-500'><span>Last updated on: </span>{time.toLocaleTimeString()}</p>
-                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>{inspection?.status}</div>
+                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.state)}`}>{inspection?.state}</div>
                     </div>
                 </div>
                 <div className='flex flex-row justify-between items-center'>
