@@ -30,6 +30,7 @@ const InspectionDetails = () => {
     }, [inspectionNo]);
 
     const handleInspectionUpdate = (updatedInspection) => {
+        console.log("Updated inspection after image upload:", updatedInspection);
         setInspection(updatedInspection);
     };
 

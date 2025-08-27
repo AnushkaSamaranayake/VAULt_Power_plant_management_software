@@ -58,7 +58,9 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                 }
             );
 
+            console.log('Image upload response:', response.data);
             if (response.data && onInspectionUpdate) {
+                console.log('Updating inspection with new data:', response.data);
                 onInspectionUpdate(response.data);
             }
 

@@ -28,6 +28,7 @@ const TransformerDetails = () => {
     const fetchInspections = async () => {
         try {
             const response = await axios.get("http://localhost:8080/api/inspections");
+            console.log("Fetched inspections:", response.data);
             setInspections(response.data || []);
         } catch (error) {
             console.error("Error fetching inspections:", error);

@@ -121,7 +121,7 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Inspection No</div>
                         <div className="font-semibold">Inspection Date</div>
-                        <div className="font-semibold">Maintain Date</div>
+                        <div className="font-semibold">Maintainance Date</div>
                         <div className="font-semibold">Status</div>
                         <div className="font-semibold">Actions</div>
                     </div>

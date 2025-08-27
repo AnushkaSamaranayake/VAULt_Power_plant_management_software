@@ -48,7 +48,7 @@ const InspectionTable = ({inspections, onInspectionDeleted}) => {
             <div className="grid grid-cols-5 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                 <div className="font-semibold">Inspection No</div>
                 <div className="font-semibold">Inspection Date</div>
-                <div className="font-semibold">Maintain Date</div>
+                <div className="font-semibold">Maintainance Date</div>
                 <div className="font-semibold">Status</div>
                 <div className="font-semibold">Actions</div>
             </div>
@@ -58,7 +58,11 @@ const InspectionTable = ({inspections, onInspectionDeleted}) => {
                     <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4 hover:shadow-lg transition duration-200">
                         <div className="text-xs">{inspection.inspectionNo}</div>
                         <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
-                        <div className="text-xs">{inspection.maintainDate}</div>
+                        <div className="text-xs">
+                            {inspection.maintenanceImageUploadDateAndTime ? 
+                                new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleString() 
+                                : 'Not maintained yet'}
+                        </div>
                         <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.state)}`}>{inspection.state}</div>
                         <div className="flex items-center space-x-2">
                             <button 
