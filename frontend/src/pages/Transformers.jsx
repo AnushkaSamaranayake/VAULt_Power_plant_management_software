@@ -17,27 +17,41 @@ const Transformers = () => {
     const fetchInspections = () => {
         axios.get("http://localhost:8080/api/inspections")
             .then((response) => {
-                setInspections(response.data || []); // Handle empty response
+                setInspections(response.data || []);
             })
             .catch((error) => {
                 console.error("Error fetching inspections:", error);
-                setInspections([]); // Set empty array on error
+                setInspections([]);
+            });
+    };
+
+    const fetchTransformers = () => {
+        axios.get("http://localhost:8080/api/transformers")
+            .then((response) => {
+                setTransformers(response.data || []);
+            })
+            .catch((error) => {
+                console.error("Error fetching transformers:", error);
+                setTransformers([]);
             });
     };
 
     const handleInspectionAdded = () => {
-        // Refresh the inspections list when a new inspection is added
         fetchInspections();
     };
 
+    const handleTransformerDeleted = (deletedTransformerNo) => {
+        setTransformers(prev => prev.filter(transformer => transformer.transformerNo !== deletedTransformerNo));
+        // Also remove related inspections
+        setInspections(prev => prev.filter(inspection => inspection.transformerNo !== deletedTransformerNo));
+    };
+
+    const handleInspectionDeleted = (deletedInspectionNo) => {
+        setInspections(prev => prev.filter(inspection => inspection.inspectionNo !== deletedInspectionNo));
+    };
+
     useEffect(() => {
-        axios.get("http://localhost:8080/api/transformers")
-            .then((response) => {
-                setTransformers(response.data);
-            })
-            .catch((error) => {
-                console.error("Error fetching transformers:", error);
-            });
+        fetchTransformers();
     }, []);
 
     useEffect(() => {
@@ -69,7 +83,13 @@ const Transformers = () => {
                 </div>
                 <div className='flex flex-col bg-white p-5 rounded-md shadow-md'>
                     <Head activeTable={activeTable} setActiveTable={setActiveTable} onInspectionAdded={handleInspectionAdded} />
-                    <TransformerTable activeTable={activeTable} transformers={uniqueTransformers} inspections={inspections} />
+                    <TransformerTable 
+                        activeTable={activeTable} 
+                        transformers={uniqueTransformers} 
+                        inspections={inspections} 
+                        onTransformerDeleted={handleTransformerDeleted}
+                        onInspectionDeleted={handleInspectionDeleted}
+                    />
                 </div>
             </div>
             <Footer />

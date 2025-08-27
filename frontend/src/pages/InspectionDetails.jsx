@@ -7,52 +7,55 @@ import ImageUpload from '../components/InspectionDetails/ImageUpload'
 import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
-
-
     const { inspectionNo } = useParams();
-
     const [inspection, setInspection] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        axios.get(`http://localhost:8080/api/inspections/${inspectionNo}`)
-            .then((response) => {
-                setInspection(response.data);
-            })
-            .catch((error) => {
-                console.error("Error fetching inspections:", error);
-            });
-    }, [inspectionNo]);
-
-
-    const [showUploadModal, setShowUploadModal] = useState(false);
-    const [uploadImage, setUploadImage] = useState(null);
-    const [uploadProgress, setUploadProgress] = useState(0);
-
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setUploadProgress(0);
-        setShowUploadModal(true);
-
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            setUploadProgress(progress);
-            if (progress >= 100) {
-                clearInterval(interval);
-
-                const imgUrl = URL.createObjectURL(file);
-                setUploadImage(imgUrl);
-
-                setTimeout(() => {
-                    setShowUploadModal(false);
-                }, 500);
-            }
-        }, 300);
+    const fetchInspection = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`http://localhost:8080/api/inspections/${inspectionNo}`);
+            setInspection(response.data);
+        } catch (error) {
+            console.error("Error fetching inspection:", error);
+            setError("Failed to load inspection details");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    if (!inspection) return <div>Inspection not found</div>;
+    useEffect(() => {
+        fetchInspection();
+    }, [inspectionNo]);
+
+    const handleInspectionUpdate = (updatedInspection) => {
+        setInspection(updatedInspection);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-lg">Loading inspection details...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-red-600 text-lg">{error}</div>
+            </div>
+        );
+    }
+
+    if (!inspection) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-lg">Inspection not found</div>
+            </div>
+        );
+    }
 
     return (
         <>  
@@ -63,7 +66,7 @@ const InspectionDetails = () => {
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
                     <Head inspection={inspection} />
                 </div>
-                <ImageUpload />
+                <ImageUpload inspection={inspection} onInspectionUpdate={handleInspectionUpdate} />
             </div>
             <Footer />
         </>
