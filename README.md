@@ -161,10 +161,59 @@ The backend will be available at:
 
 ___
 
-## Frontend Setup
 
+# Frontend (React + Vite + Tailwind)
 
+This is the frontend of the project, built with **React**, **Vite**, and **Tailwind CSS**.  
+It provides the user interface and communicates with the backend API.
 
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v16+ recommended)
+- npm (comes with Node.js)
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+___
+
+## Running the Frontend in Development
+
+Start the Vite server.
+
+```bash
+npm run dev
+```
+
+The backend will be available at:
+👉 http://localhost:5173
+
+## Building for Production
+
+To generate an optimized production build:
+
+```bash
+npm run build
+```
+
+The output will be in the dist/ folder.
+
+These are the static files you can deploy to any hosting service.
+
+## Preview the production build
+
+You can locally test the production build:
+```bash
+npm run preview
+```
+
+This will start a server that serves the files from dist/.
 
 
 
