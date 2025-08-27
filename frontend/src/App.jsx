@@ -11,7 +11,7 @@ import AccountBar from './components/AccountBar'
 
 const App = () => {
   return (
-    <div className="flex">
+    <div>
       <Router>
         <Routes>
           <Route path="/" element={<Dashboard />} />
