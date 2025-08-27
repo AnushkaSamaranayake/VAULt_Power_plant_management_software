@@ -3,7 +3,7 @@ import AddTransformer from '../Transformers/AddTransformer';
 import AddInspector from './AddInspector';
 import { useState,useEffect } from 'react';
 
-const Head = ({ activeTable, setActiveTable}) => {
+const Head = ({ activeTable, setActiveTable, onInspectionAdded}) => {
 
     const [showAddTransformer, setShowAddTransformer] = useState(false);
     const [showAddInspection, setShowAddInspection] = useState(false);
@@ -24,7 +24,7 @@ const Head = ({ activeTable, setActiveTable}) => {
                 <button onClick={() => setActiveTable("inspections")} className={`px-4 py-1 ${activeTable === "inspections" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-700"} rounded-sm bg-blue-500 text-white text-sm shadow-md`}>Inspections</button>
             </div>
             {showAddTransformer && <AddTransformer onClose={() => setShowAddTransformer(false)} />}
-            {showAddInspection && <AddInspector onClose={() => setShowAddInspection(false)} />}
+            {showAddInspection && <AddInspector onClose={() => setShowAddInspection(false)} onInspectionAdded={onInspectionAdded} />}
         </div>
   );
 };

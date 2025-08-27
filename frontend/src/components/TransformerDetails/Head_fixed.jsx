@@ -1,6 +1,5 @@
 import React from 'react'
 import { useState } from 'react'
-// import inspections from '../../constants/inspections.json'
 import { useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Image, Eye, Trash2 } from 'lucide-react'
@@ -19,43 +18,34 @@ const Head = ({ transformer }) => {
             return () => clearInterval(interval);
             }, []);
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "Pending":
-                return "border-red-400 bg-red-300 text-red-800 ";
-            case "In progress":
-                return "border-blue-400 bg-blue-300 text-blue-800";
-            case "Completed":
-                return "border-green-400 bg-green-300 text-green-800";
-            default:
-                return "border-gray-400 bg-gray-300 text-gray-800";
-        }
-    };
-
     return (
         <div className='flex flex-col justify-between p-2'>
-                        <div className='flex flex-row justify-between items-center mb-3'>
+            <div className='flex flex-row justify-between items-center mb-3'>
                 <div className='flex flex-col'>
                     <h1 className='text-2xl font-bold text-blue-900'>{transformer?.transformerNo || 'Loading...'}</h1>
-                    <p className='text-sm text-gray-600'>{transformer?.locationDetails || 'N/A'}</p>
-                    <p className='text-xs text-gray-500'><span>Region: </span>{transformer?.region || 'N/A'}</p>
+                    <p className='text-sm text-gray-600'>{transformer?.locationDetails || 'Loading...'}</p>
+                    <p className='text-xs text-gray-500'><span>Region: </span>{transformer?.region || 'Loading...'}</p>
                 </div>
+                <div className='flex flex-row items-center space-x-4'>
+                    <p className='text-xs text-gray-500'><span>Last updated on: </span>{time.toLocaleTimeString()}</p>
+                </div>
+            </div>
             <div className='flex flex-row justify-between items-center'>
                 <div className='grid grid-cols-4 gap-4'>
                     <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                        <h2 className='text-md font-semibold'>{transformer?.poleNo}</h2>
+                        <h2 className='text-md font-semibold'>{transformer?.poleNo || '...'}</h2>
                         <p className='text-xs text-gray-700'>Pole No</p>
                     </div>
                     <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                        <h2 className='text-md font-semibold'>{transformer?.capacity}</h2>
+                        <h2 className='text-md font-semibold'>{transformer?.capacity || '...'}</h2>
                         <p className='text-xs text-gray-700'>Capacity</p>
                     </div>
                     <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                        <h2 className='text-md font-semibold'>{transformer?.type}</h2>
+                        <h2 className='text-md font-semibold'>{transformer?.type || '...'}</h2>
                         <p className='text-xs text-gray-700'>Type</p>
                     </div>
                     <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                        <h2 className='text-md font-semibold'>{transformer?.feeders}</h2>
+                        <h2 className='text-md font-semibold'>{transformer?.numberOfFeeders || '...'}</h2>
                         <p className='text-xs text-gray-700'>No. of Feeders</p>
                     </div>
                 </div>

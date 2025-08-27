@@ -1,6 +1,6 @@
 import React from 'react'
 import axios from 'axios'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Head from '../components/InspectionDetails/Head'
 import ImageUpload from '../components/InspectionDetails/ImageUpload'

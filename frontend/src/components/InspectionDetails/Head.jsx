@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 // import inspections from '../../constants/inspections.json'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 import { Image, Eye, Trash2 } from 'lucide-react'
 
 const Head = ({ inspection }) => {

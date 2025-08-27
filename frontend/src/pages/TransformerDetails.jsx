@@ -1,9 +1,8 @@
 import React from 'react'
 import axios from 'axios'
-import { useParams } from 'react-router'
-// import inspections from '../constants/inspections.json'
+import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import Head from '../components/TransformerDetails/Head'
+import Head from '../components/TransformerDetails/Head_fixed'
 import InspectionTable from '../components/TransformerDetails/InspectionTable'
 import Footer from '../components/Footer'
 import AddInspector from '../components/Transformers/AddInspector';
@@ -28,10 +27,11 @@ const TransformerDetails = () => {
     useEffect(() => {
         axios.get("http://localhost:8080/api/inspections")
             .then((response) => {
-                setInspections(response.data);
+                setInspections(response.data || []); // Handle empty response
             })
             .catch((error) => {
                 console.error("Error fetching inspections:", error);
+                setInspections([]); // Set empty array on error
             });
     }, []);
 

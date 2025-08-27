@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react';
-import { useParams } from 'react-router';
-import inspection from '../../constants/inspections.json'
+import { useParams } from 'react-router-dom';
+// import inspection from '../../constants/inspections.json'
 
 const ImageUpload = () => {
 

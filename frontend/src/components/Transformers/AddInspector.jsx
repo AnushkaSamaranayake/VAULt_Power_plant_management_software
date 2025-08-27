@@ -4,7 +4,7 @@ import axios from 'axios';
 import { branches, transformerTypes } from '../../constants'
 import { X } from 'lucide-react';
 
-const AddInspector = ({onClose}) => {
+const AddInspector = ({onClose, onInspectionAdded}) => {
 
     const [formData, setFormData] = useState({
         branch: "",
@@ -19,14 +19,33 @@ const AddInspector = ({onClose}) => {
             const response = await axios.post("http://localhost:8080/api/inspections", formData,
                 {headers: {"Content-Type": "application/json"},}
             );
+            console.log("Inspection created:", response.data);
             alert("Inspection added successfully!");
 
+            // Reset form
             setFormData({ branch: "", transformerNo: "", dateOfInspectionAndTime: "" });
+            
+            // Notify parent component to refresh the inspection list
+            if (onInspectionAdded) {
+                onInspectionAdded();
+            }
+            
+            // Close the modal
+            onClose();
         }
         catch (error) {
             console.error("Error adding inspection:", error);
+            if (error.response) {
+                // Server responded with error status
+                alert(`Error: ${error.response.data || 'Failed to add inspection'}`);
+            } else if (error.request) {
+                // Request made but no response received
+                alert("Error: No response from server. Please check if the backend is running.");
+            } else {
+                // Something else happened
+                alert(`Error: ${error.message}`);
+            }
         }
-
     };
 
     return (

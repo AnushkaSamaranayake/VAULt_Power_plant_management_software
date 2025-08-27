@@ -5,7 +5,7 @@ import TransformerTable from '../components/Transformers/TransformerTable'
 // import inspections from '../constants/inspections.json'
 import { useState, useEffect } from 'react'
 import Footer from '../components/Footer'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 
 const Transformers = () => {
 
@@ -13,6 +13,22 @@ const Transformers = () => {
 
     const [transformers, setTransformers] = useState([]);
     const [inspections, setInspections] = useState([]);
+
+    const fetchInspections = () => {
+        axios.get("http://localhost:8080/api/inspections")
+            .then((response) => {
+                setInspections(response.data || []); // Handle empty response
+            })
+            .catch((error) => {
+                console.error("Error fetching inspections:", error);
+                setInspections([]); // Set empty array on error
+            });
+    };
+
+    const handleInspectionAdded = () => {
+        // Refresh the inspections list when a new inspection is added
+        fetchInspections();
+    };
 
     useEffect(() => {
         axios.get("http://localhost:8080/api/transformers")
@@ -25,13 +41,7 @@ const Transformers = () => {
     }, []);
 
     useEffect(() => {
-        axios.get("http://localhost:8080/api/inspections")
-            .then((response) => {
-                setInspections(response.data);
-            })
-            .catch((error) => {
-                console.error("Error fetching inspections:", error);
-            });
+        fetchInspections();
     }, []);
 
     // Step 1: Reduce inspections to unique transformers
@@ -58,7 +68,7 @@ const Transformers = () => {
                     <h1 className='text-3xl font-bold text-blue-900'>Transformers</h1>
                 </div>
                 <div className='flex flex-col bg-white p-5 rounded-md shadow-md'>
-                    <Head activeTable={activeTable} setActiveTable={setActiveTable} />
+                    <Head activeTable={activeTable} setActiveTable={setActiveTable} onInspectionAdded={handleInspectionAdded} />
                     <TransformerTable activeTable={activeTable} transformers={uniqueTransformers} inspections={inspections} />
                 </div>
             </div>

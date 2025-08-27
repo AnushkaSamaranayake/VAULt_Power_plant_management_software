@@ -32,17 +32,23 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
                         <div className="font-semibold">Type</div>
                         <div className="font-semibold">Actions</div>
                     </div>
-                    {transformers.map((transformer) => (
-                        <div key={transformer.transformerNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4 hover:scale-110 transition duration-700">
-                            <div className="text-sm">{transformer.transformerNo}</div>
-                            <div className="text-sm">{transformer.poleNo}</div>
-                            <div className="text-sm">{transformer.region}</div>
-                            <div className="text-sm">{transformer.type}</div>
-                            <div className="text-left">
-                                <button onClick={() => navigate(`/transformers/${transformer.transformerNo}`)} className="text-sm px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                    {transformers && transformers.length > 0 ? (
+                        transformers.map((transformer) => (
+                            <div key={transformer.transformerNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-5 gap-y-2 p-4 hover:scale-110 transition duration-700">
+                                <div className="text-sm">{transformer.transformerNo}</div>
+                                <div className="text-sm">{transformer.poleNo}</div>
+                                <div className="text-sm">{transformer.region}</div>
+                                <div className="text-sm">{transformer.type}</div>
+                                <div className="text-left">
+                                    <button onClick={() => navigate(`/transformers/${transformer.transformerNo}`)} className="text-sm px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="bg-white shadow rounded-md border border-gray-200 p-8 text-center">
+                            <p className="text-gray-500 text-sm">No transformers found.</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             )}
 
@@ -56,18 +62,24 @@ const TransformerTable = ({ activeTable, transformers, inspections }) => {
                         <div className="font-semibold">Status</div>
                         <div className="font-semibold">Actions</div>
                     </div>
-                    {inspections.map((inspection) => (
-                        <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3 hover:scale-110 transition duration-200">
-                            <div className="text-xs">{inspection.transformerNo}</div>
-                            <div className="text-xs">{inspection.inspectionNo}</div>
-                            <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
-                            <div className="text-xs">{inspection.maintainDate}</div>
-                            <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
-                            <div className="text-left">
-                                <button onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                    {inspections && inspections.length > 0 ? (
+                        inspections.map((inspection) => (
+                            <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3 hover:scale-110 transition duration-200">
+                                <div className="text-xs">{inspection.transformerNo}</div>
+                                <div className="text-xs">{inspection.inspectionNo}</div>
+                                <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
+                                <div className="text-xs">{inspection.maintainDate}</div>
+                                <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.status)}`}>{inspection.status}</div>
+                                <div className="text-left">
+                                    <button onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} className="text-xs px-4 py-1 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">View</button>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="bg-white shadow rounded-md border border-gray-200 p-8 text-center">
+                            <p className="text-gray-500 text-sm">No inspections found.</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             )}
         </div>
