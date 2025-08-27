@@ -8,6 +8,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
 
     const { inspectionNo } = useParams();
 
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showImageModal, setShowImageModal] = useState(false);
     const [currentImageUrl, setCurrentImageUrl] = useState(null);
@@ -133,17 +134,14 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                         </select>
                     </div>
                     <div className='mb-4'>
-                        <label className='flex items-center justify-center px-4 py-3 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 transition-colors duration-200'>
+                        <button
+                            type="button"
+                            onClick={() => setShowMaintenanceModal(true)}
+                            className='flex items-center justify-center px-4 py-3 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 transition-colors duration-200 w-full'
+                        >
                             <Upload className='w-4 h-4 mr-2' />
-                            {isUploading ? 'Uploading...' : 'Upload Maintenance Image'}
-                            <input 
-                                type="file" 
-                                accept="image/jpeg,image/png,image/gif" 
-                                onChange={handleFileUpload} 
-                                className='hidden'
-                                disabled={isUploading}
-                            />
-                        </label>
+                            {inspection?.maintenanceImagePath ? 'Update Maintenance Image' : 'Upload Maintenance Image'}
+                        </button>
                         <p className="text-xs text-gray-500 mt-2">
                             Supported formats: JPG, PNG, GIF (Max: 10MB)
                         </p>
@@ -240,6 +238,92 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                             <p className='font-medium text-gray-700'>Weather Conditions</p>
                             <p className='text-gray-600 capitalize'>{inspection.weather || 'N/A'}</p>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Maintenance Image Upload Modal */}
+            {showMaintenanceModal && (
+                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50'>
+                    <div className='bg-white p-6 rounded-lg shadow-xl w-96'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h3 className='text-lg font-semibold'>
+                                {inspection?.maintenanceImagePath ? 'Update Maintenance Image' : 'Upload Maintenance Image'}
+                            </h3>
+                            <button
+                                onClick={() => setShowMaintenanceModal(false)}
+                                className='p-1 hover:bg-gray-100 rounded'
+                            >
+                                <X className='w-5 h-5' />
+                            </button>
+                        </div>
+
+                        {uploadError ? (
+                            <div className='mb-4 p-3 bg-red-100 border border-red-200 rounded text-red-700 text-sm'>
+                                <AlertCircle className='w-4 h-4 inline mr-2' />
+                                {uploadError}
+                            </div>
+                        ) : null}
+
+                        {inspection?.maintenanceImagePath && (
+                            <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded'>
+                                <p className='text-sm text-blue-800'>
+                                    <span className='font-medium'>Current maintenance image:</span> Uploaded on {' '}
+                                    {inspection.maintenanceImageUploadDateAndTime ? 
+                                        new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString() : 
+                                        'Unknown date'
+                                    }
+                                </p>
+                                {inspection.weather && (
+                                    <p className='text-xs text-blue-600 mt-1'>
+                                        Weather: {inspection.weather}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        <form>
+                            <div className='mb-4'>
+                                <label htmlFor="maintenance-weather" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Weather Condition <span className="text-red-500">*</span>
+                                </label>
+                                <select 
+                                    name="weather" 
+                                    id="maintenance-weather" 
+                                    value={selectedWeather}
+                                    onChange={(e) => setSelectedWeather(e.target.value)}
+                                    className='border border-gray-300 p-2 rounded-md w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    disabled={isUploading}
+                                >
+                                    <option value="sunny">Sunny</option>
+                                    <option value="cloudy">Cloudy</option>
+                                    <option value="rainy">Rainy</option>
+                                    <option value="snowy">Snowy</option>
+                                    <option value="windy">Windy</option>
+                                    <option value="foggy">Foggy</option>
+                                </select>
+                            </div>
+
+                            <div className='mb-4'>
+                                <label className='flex items-center justify-center px-4 py-3 bg-blue-500 text-white text-sm rounded-lg cursor-pointer hover:bg-blue-600 transition-colors duration-200'>
+                                    <Upload className='w-4 h-4 mr-2' />
+                                    {isUploading ? 'Uploading...' : 'Select Maintenance Image'}
+                                    <input 
+                                        type="file" 
+                                        accept="image/jpeg,image/png,image/gif" 
+                                        onChange={(e) => {
+                                            handleFileUpload(e);
+                                            setShowMaintenanceModal(false);
+                                        }} 
+                                        className='hidden'
+                                        disabled={isUploading}
+                                    />
+                                </label>
+                                <p className="text-xs text-gray-500 mt-2 text-center">
+                                    Supported formats: JPG, PNG, GIF (Max: 10MB)
+                                </p>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

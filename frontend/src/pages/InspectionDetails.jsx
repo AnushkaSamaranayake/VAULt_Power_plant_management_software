@@ -64,7 +64,7 @@ const InspectionDetails = () => {
                     <h1 className='text-3xl font-bold text-blue-900 mb-10'>Inspection</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
-                    <Head inspection={inspection} />
+                    <Head inspection={inspection} onInspectionUpdate={handleInspectionUpdate} />
                 </div>
                 <ImageUpload inspection={inspection} onInspectionUpdate={handleInspectionUpdate} />
             </div>
