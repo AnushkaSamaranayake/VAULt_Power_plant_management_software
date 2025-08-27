@@ -143,7 +143,7 @@ const Head = ({ inspection, onInspectionUpdate }) => {
                             <p className='text-xs text-gray-700'>Transformer No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
-                            <h2 className='text-md font-semibold'>{inspection?.poleNo}</h2>
+                            <h2 className='text-md font-semibold'>{transformer?.poleNo || 'Loading...'}</h2>
                             <p className='text-xs text-gray-700'>Pole No</p>
                         </div>
                         <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
