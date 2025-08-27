@@ -1,62 +1,54 @@
 import React from 'react'
-import axios from 'axios'
 import { useParams } from 'react-router'
-// import inspections from '../constants/inspections.json'
-import { useState, useEffect } from 'react'
+import inspections from '../constants/inspections.json'
+import { useState } from 'react'
 import Head from '../components/TransformerDetails/Head'
-import InspectionTable from '../components/TransformerDetails/InspectionTable'
+import ImageUpload from '../components/TransformerDetails/ImageUpload'
 import Footer from '../components/Footer'
-import AddInspector from '../components/Transformers/AddInspector';
 
 const TransformerDetails = () => {
+    const { id } = useParams();
+    const transformer = inspections.find(transformer => transformer.id === id);
 
-    const { transformerNo } = useParams();
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadImage, setUploadImage] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
-    const [transformer, setTransformer] = useState(null);
-    const [inspections, setInspections] = useState([]);
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
 
-    useEffect(() => {
-        axios.get(`http://localhost:8080/api/transformers/${transformerNo}`)
-            .then((response) => {
-                setTransformer(response.data);
-            })
-            .catch((error) => {
-                console.error("Error fetching transformer:", error);
-            });
-    }, [transformerNo]);
+        setUploadProgress(0);
+        setShowUploadModal(true);
 
-    useEffect(() => {
-        axios.get("http://localhost:8080/api/inspections")
-            .then((response) => {
-                setInspections(response.data);
-            })
-            .catch((error) => {
-                console.error("Error fetching inspections:", error);
-            });
-    }, []);
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            setUploadProgress(progress);
+            if (progress >= 100) {
+                clearInterval(interval);
 
-    const filteredInspection = inspections.filter(inspection => inspection.transformerNo === transformerNo);
+                const imgUrl = URL.createObjectURL(file);
+                setUploadImage(imgUrl);
 
+                setTimeout(() => {
+                    setShowUploadModal(false);
+                }, 500);
+            }
+        }, 300);
+    };
 
-    const [showAddInspection, setShowAddInspection] = useState(false);
-
+    if (!transformer) return <div>Transformer not found</div>;
     return (
-        <>
+        <>  
             <div className='flex flex-col m-10 min-h-screen'>
                 <div>
                     <h1 className='text-3xl font-bold text-blue-900 mb-10'>Transformer</h1>
                 </div>
                 <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
-                    <Head transformer={transformer} />
+                    <Head />
                 </div>
-                <div className='flex flex-col p-5 bg-white rounded-md shadow-md mb-10'>
-                    <div className='flex flex-row items-center justify-between mb-5'>
-                        <h2 className='text-xl font-semibold text-blue-800'>Inspections</h2>
-                        <button className='ml-5 px-4 py-1 bg-blue-500 text-white rounded-lg text-sm' onClick={() => setShowAddInspection(true)}>Add Inspection</button>
-                    </div>
-                    <InspectionTable inspections={filteredInspection} />
-                </div>
-                {showAddInspection && <AddInspector onClose={() => setShowAddInspection(false)} />}
+                <ImageUpload />
             </div>
             <Footer />
         </>
