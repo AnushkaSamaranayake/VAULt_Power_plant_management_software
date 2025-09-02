@@ -1,1 +1,3 @@
 .vscode/
+frontend/src/components/SidePanel.jsx
+backend/src/main/resources/application.properties
