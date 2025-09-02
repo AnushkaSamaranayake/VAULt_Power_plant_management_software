@@ -1,6 +1,5 @@
 import React from 'react'
-import { BrowserRouter as Router } from 'react-router'
-import {Routes, Route} from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Transformers from './pages/Transformers'
 import InspectionDetails from './pages/InspectionDetails'

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 // import inspections from '../../constants/inspections.json'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Image, Eye, Trash2 } from 'lucide-react'
 
@@ -34,16 +34,12 @@ const Head = ({ transformer }) => {
 
     return (
         <div className='flex flex-col justify-between p-2'>
-            <div className='flex flex-row justify-between items-center mb-6'>
-                <div className='flex flex-col items-start'>
-                    <h1 className='text-xl font-semibold'>{transformer?.transformerNo}</h1>
-                    <p className='text-xs text-gray-500'><span>Transformer last inspected on: </span>{transformer?.dateOfInspectionAndTime}</p>
+                        <div className='flex flex-row justify-between items-center mb-3'>
+                <div className='flex flex-col'>
+                    <h1 className='text-2xl font-bold text-blue-900'>{transformer?.transformerNo || 'Loading...'}</h1>
+                    <p className='text-sm text-gray-600'>{transformer?.locationDetails || 'N/A'}</p>
+                    <p className='text-xs text-gray-500'><span>Region: </span>{transformer?.region || 'N/A'}</p>
                 </div>
-                <div className='flex flex-row items-center space-x-4'>
-                    <p className='text-xs text-gray-500'><span>Last updated on: </span>{time.toLocaleTimeString()}</p>
-                    <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(transformer?.status)}`}>{transformer?.status}</div>
-                </div>
-            </div>
             <div className='flex flex-row justify-between items-center'>
                 <div className='grid grid-cols-4 gap-4'>
                     <div className='border rounded-xl py-2 px-4 flex flex-col items-center bg-indigo-200 shadow-md'>
