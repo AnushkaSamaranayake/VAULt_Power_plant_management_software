@@ -14,7 +14,7 @@ def run_inference(image_bytes: bytes, conf_threshold: float = 0.25):
     img = cv.imdecode(nparr, cv.IMREAD_COLOR)
 
     # Perform inference
-    results = model(img, conf=conf_threshold)[0]
+    results = model(img, conf=conf_threshold)
 
     predictions = []
 
