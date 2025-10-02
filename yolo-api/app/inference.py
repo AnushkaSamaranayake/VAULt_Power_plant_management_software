@@ -17,6 +17,7 @@ def run_inference(image_bytes: bytes, conf_threshold: float = 0.25):
     results = model(img, conf=conf_threshold)
 
     predictions = []
+    print(f"YOLOv8 Inference Results: {results[0].boxes.data}")
 
     for r in results[0].boxes.data.tolist():
         x1, y1, x2, y2, score, class_id = r
