@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -159,6 +160,18 @@ public class InspectionService {
      * @return Updated InspectionDTO with image path
      */
     public Optional<InspectionDTO> uploadMaintenanceImage(Long inspectionNo, MultipartFile file, String weather) {
+        return uploadMaintenanceImage(inspectionNo, file, weather, 0.50); // Default confidence
+    }
+
+    /**
+     * Upload maintenance image for an inspection with custom confidence
+     * @param inspectionNo The inspection number
+     * @param file The image file to upload
+     * @param weather The weather conditions during inspection (optional)
+     * @param confidence The confidence threshold for AI analysis (0.1-1.0)
+     * @return Updated InspectionDTO with image path
+     */
+    public Optional<InspectionDTO> uploadMaintenanceImage(Long inspectionNo, MultipartFile file, String weather, Double confidence) {
         return inspectionRepository.findById(inspectionNo)
                 .map(inspection -> {
                     try {
@@ -198,7 +211,7 @@ public class InspectionService {
                         // Copy bytes and filename here to avoid using MultipartFile after the request returns
                         byte[] imageBytes = file.getBytes();
                         String originalFilename = file.getOriginalFilename();
-                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, originalFilename);
+                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, originalFilename, confidence);
                         
                         return modelMapper.map(savedInspection, InspectionDTO.class);
                     } catch (IOException e) {
@@ -210,18 +223,57 @@ public class InspectionService {
     }
     
     /**
-     * Analyze image asynchronously using YOLO AI service
+     * Re-analyze existing maintenance image with different confidence threshold
      * @param inspectionNo The inspection number
-     * @param file The image file to analyze
+     * @param confidence The confidence threshold for AI analysis (0.1-1.0)
+     * @return Updated InspectionDTO if found, empty Optional otherwise
      */
-    private void analyzeImageAsync(Long inspectionNo, byte[] imageBytes, String originalFilename) {
+    public Optional<InspectionDTO> reanalyzeImage(Long inspectionNo, Double confidence) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    if (inspection.getMaintenanceImagePath() == null || inspection.getMaintenanceImagePath().trim().isEmpty()) {
+                        throw new RuntimeException("No maintenance image found for re-analysis");
+                    }
+                    
+                    try {
+                        // Set AI analysis status to pending (using state column)
+                        inspection.setState("AI Analysis Pending");
+                        inspection.setAiBoundingBoxes(null); // Clear previous analysis
+                        
+                        // Save inspection first to persist the pending status
+                        Inspection savedInspection = inspectionRepository.save(inspection);
+                        
+                        // Get image file from storage
+                        Path imagePath = imageStorageService.getImagePath(inspection.getMaintenanceImagePath(), false);
+                        byte[] imageBytes = java.nio.file.Files.readAllBytes(imagePath);
+                        
+                        // Trigger AI analysis asynchronously with new confidence
+                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, inspection.getMaintenanceImagePath(), confidence);
+                        
+                        return modelMapper.map(savedInspection, InspectionDTO.class);
+                    } catch (Exception e) {
+                        System.err.println("Failed to re-analyze image for inspection: " + inspectionNo);
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to re-analyze image", e);
+                    }
+                });
+    }
+    
+    /**
+     * Analyze image asynchronously using YOLO AI service with custom confidence
+     * @param inspectionNo The inspection number
+     * @param imageBytes The image bytes to analyze
+     * @param originalFilename The original filename
+     * @param confidence The confidence threshold for AI analysis
+     */
+    private void analyzeImageAsync(Long inspectionNo, byte[] imageBytes, String originalFilename, Double confidence) {
         // Run analysis in a separate thread to not block the upload response
         new Thread(() -> {
             try {
-                System.out.println("InspectionService - Starting AI analysis for inspection: " + inspectionNo);
+                System.out.println("InspectionService - Starting AI analysis for inspection: " + inspectionNo + " with confidence: " + confidence);
                 
-                // Call YOLO API for analysis
-                String boundingBoxes = yoloAiService.analyzeImage(imageBytes, originalFilename);
+                // Call YOLO API for analysis with custom confidence
+                String boundingBoxes = yoloAiService.analyzeImage(imageBytes, originalFilename, confidence);
                 
                 // Update inspection with analysis results
                 inspectionRepository.findById(inspectionNo).ifPresent(inspection -> {

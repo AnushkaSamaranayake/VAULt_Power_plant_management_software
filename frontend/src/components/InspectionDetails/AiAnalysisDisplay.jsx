@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings } from 'lucide-react';
+import axios from 'axios';
 
 const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [boundingBoxes, setBoundingBoxes] = useState([]);
     const [showBoxes, setShowBoxes] = useState(true);
+    const [confidence, setConfidence] = useState(0.50);
+    const [isReanalyzing, setIsReanalyzing] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
 
@@ -150,12 +154,56 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         }
     };
 
+    // Handle confidence change and re-analysis
+    const handleConfidenceChange = async (newConfidence) => {
+        if (isReanalyzing || getAiStatus() === 'pending') return;
+        
+        setConfidence(newConfidence);
+        setIsReanalyzing(true);
+        
+        try {
+            await axios.post(`http://localhost:8080/api/inspections/${inspection.inspectionNo}/reanalyze`, null, {
+                params: { confidence: newConfidence }
+            });
+            
+            // Wait a moment then refresh to show pending status
+            setTimeout(() => {
+                onRefresh();
+                setIsReanalyzing(false);
+            }, 500);
+        } catch (error) {
+            console.error('Failed to reanalyze image:', error);
+            setIsReanalyzing(false);
+        }
+    };
+
     if (!inspection?.maintenanceImagePath) {
         return null;
     }
 
     return (
         <div className="mt-6 space-y-4">
+            <style jsx>{`
+                .slider::-webkit-slider-thumb {
+                    appearance: none;
+                    height: 20px;
+                    width: 20px;
+                    border-radius: 50%;
+                    background: #3B82F6;
+                    cursor: pointer;
+                    border: 2px solid #FFFFFF;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                .slider::-moz-range-thumb {
+                    height: 20px;
+                    width: 20px;
+                    border-radius: 50%;
+                    background: #3B82F6;
+                    cursor: pointer;
+                    border: 2px solid #FFFFFF;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+            `}</style>
             {/* AI Analysis Status */}
             <div className={`flex items-center justify-between p-4 rounded-lg border ${getStatusColor()}`}>
                 <div className="flex items-center space-x-3">
@@ -165,16 +213,65 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                         <p className="text-xs">{getStatusText()}</p>
                     </div>
                 </div>
-                {getAiStatus() === 'pending' && (
-                    <button
-                        onClick={onRefresh}
-                        className="p-2 hover:bg-white hover:bg-opacity-50 rounded-full transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCw className="w-4 h-4" />
-                    </button>
-                )}
+                <div className="flex items-center space-x-2">
+                    {(getAiStatus() === 'completed' || getAiStatus() === 'failed') && (
+                        <button
+                            onClick={() => setShowSettings(!showSettings)}
+                            className="p-2 hover:bg-white hover:bg-opacity-50 rounded-full transition-colors"
+                            title="Analysis Settings"
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                    )}
+                    {getAiStatus() === 'pending' && (
+                        <button
+                            onClick={onRefresh}
+                            className="p-2 hover:bg-white hover:bg-opacity-50 rounded-full transition-colors"
+                            title="Refresh"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Confidence Settings */}
+            {showSettings && (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 className="font-semibold text-sm text-gray-700 mb-3">Analysis Settings</h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-sm text-gray-600 mb-2">
+                                Confidence Threshold: {(confidence * 100).toFixed(0)}%
+                            </label>
+                            <div className="flex items-center space-x-3">
+                                <span className="text-xs text-gray-500">10%</span>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.05"
+                                    value={confidence}
+                                    onChange={(e) => setConfidence(parseFloat(e.target.value))}
+                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                    disabled={isReanalyzing || getAiStatus() === 'pending'}
+                                />
+                                <span className="text-xs text-gray-500">100%</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Higher values detect only high-confidence anomalies. Lower values may detect more potential issues.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => handleConfidenceChange(confidence)}
+                            disabled={isReanalyzing || getAiStatus() === 'pending'}
+                            className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isReanalyzing ? 'Re-analyzing...' : 'Apply & Re-analyze'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Analysis Results */}
             {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (

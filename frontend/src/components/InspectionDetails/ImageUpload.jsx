@@ -42,6 +42,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
         const formData = new FormData();
         formData.append('image', file);
         formData.append('weather', selectedWeather);
+        formData.append('confidence', '0.50'); // Default confidence for initial upload
 
         try {
             const response = await axios.post(
