@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Head from '../components/InspectionDetails/Head'
 import ImageUpload from '../components/InspectionDetails/ImageUpload'
+import AiAnalysisDisplay from '../components/InspectionDetails/AiAnalysisDisplay'
 import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
@@ -68,6 +69,15 @@ const InspectionDetails = () => {
                     <Head inspection={inspection} onInspectionUpdate={handleInspectionUpdate} />
                 </div>
                 <ImageUpload inspection={inspection} onInspectionUpdate={handleInspectionUpdate} />
+                
+                {/* AI Analysis Display */}
+                <div className='flex flex-col p-5 bg-white rounded-md shadow-md mt-6'>
+                    <h2 className='text-xl font-semibold text-gray-800 mb-4'>AI Thermal Analysis</h2>
+                    <AiAnalysisDisplay 
+                        inspection={inspection} 
+                        onRefresh={fetchInspection}
+                    />
+                </div>
             </div>
             <Footer />
         </>

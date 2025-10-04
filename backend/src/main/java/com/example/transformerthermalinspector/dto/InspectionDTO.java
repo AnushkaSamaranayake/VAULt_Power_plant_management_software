@@ -31,9 +31,10 @@ public class InspectionDTO {
     @NotNull(message = "Date of inspection is required")
     private LocalDateTime dateOfInspectionAndTime; // Inspection timestamp
     
-    private String state; // status of the inspection
+    private String state; // status of the inspection AND AI analysis status
     private LocalDateTime maintenanceImageUploadDateAndTime; // Image upload timestamp
     private String weather; // Weather conditions during inspection
+    private String aiBoundingBoxes; // AI analysis bounding boxes (JSON string)
     
     // Computed property to provide maintenance image URL for frontend
     @JsonProperty("maintenanceImageUrl")

@@ -5,6 +5,8 @@ import os
 
 #load the model
 model = YOLO("models/best.pt")
+# Force CPU inference to avoid CUDA compatibility issues
+model.to('cpu')
 
 #inference function
 def run_inference(image_bytes: bytes, conf_threshold: float = 0.25):
@@ -13,8 +15,8 @@ def run_inference(image_bytes: bytes, conf_threshold: float = 0.25):
     # Decode numpy array to OpenCV image
     img = cv.imdecode(nparr, cv.IMREAD_COLOR)
 
-    # Perform inference
-    results = model(img, conf=conf_threshold)
+    # Perform inference on CPU
+    results = model(img, conf=conf_threshold, device='cpu')
 
     predictions = []
     print(f"YOLOv8 Inference Results: {results[0].boxes.data}")

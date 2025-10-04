@@ -25,6 +25,7 @@ public class InspectionService {
     private final InspectionRepository inspectionRepository;
     private final ModelMapper modelMapper; // For Entity ↔ DTO conversion
     private final ImageStorageService imageStorageService;
+    private final YoloAiService yoloAiService;
 
     /**
      * Retrieve all inspections from database
@@ -184,9 +185,21 @@ public class InspectionService {
                             System.out.println("InspectionService - Weather parameter is null or empty, not setting weather");
                         }
                         
+                        // Set AI analysis status to pending (using state column)
+                        inspection.setState("AI Analysis Pending");
+                        inspection.setAiBoundingBoxes(null); // Clear previous analysis
+                        
+                        // Save inspection first to persist the image
                         Inspection savedInspection = inspectionRepository.save(inspection);
                         System.out.println("InspectionService - Maintenance image uploaded successfully: " + filename);
                         System.out.println("InspectionService - Weather saved to DB: '" + savedInspection.getWeather() + "'");
+                        
+                        // Trigger AI analysis asynchronously (in a separate thread to not block the response)
+                        // Copy bytes and filename here to avoid using MultipartFile after the request returns
+                        byte[] imageBytes = file.getBytes();
+                        String originalFilename = file.getOriginalFilename();
+                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, originalFilename);
+                        
                         return modelMapper.map(savedInspection, InspectionDTO.class);
                     } catch (IOException e) {
                         System.err.println("Failed to upload maintenance image for inspection: " + inspectionNo);
@@ -194,5 +207,40 @@ public class InspectionService {
                         throw new RuntimeException("Failed to upload maintenance image", e);
                     }
                 });
+    }
+    
+    /**
+     * Analyze image asynchronously using YOLO AI service
+     * @param inspectionNo The inspection number
+     * @param file The image file to analyze
+     */
+    private void analyzeImageAsync(Long inspectionNo, byte[] imageBytes, String originalFilename) {
+        // Run analysis in a separate thread to not block the upload response
+        new Thread(() -> {
+            try {
+                System.out.println("InspectionService - Starting AI analysis for inspection: " + inspectionNo);
+                
+                // Call YOLO API for analysis
+                String boundingBoxes = yoloAiService.analyzeImage(imageBytes, originalFilename);
+                
+                // Update inspection with analysis results
+                inspectionRepository.findById(inspectionNo).ifPresent(inspection -> {
+                    inspection.setAiBoundingBoxes(boundingBoxes);
+                    inspection.setState("AI Analysis Completed");
+                    inspectionRepository.save(inspection);
+                    System.out.println("InspectionService - AI analysis completed for inspection: " + inspectionNo);
+                });
+                
+            } catch (Exception e) {
+                System.err.println("InspectionService - AI analysis failed for inspection: " + inspectionNo);
+                e.printStackTrace();
+                
+                // Update inspection with failure status
+                inspectionRepository.findById(inspectionNo).ifPresent(inspection -> {
+                    inspection.setState("AI Analysis Failed");
+                    inspectionRepository.save(inspection);
+                });
+            }
+        }).start();
     }
 }
