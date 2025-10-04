@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ public class InspectionService {
     private final InspectionRepository inspectionRepository;
     private final ModelMapper modelMapper; // For Entity ↔ DTO conversion
     private final ImageStorageService imageStorageService;
+    private final YoloAiService yoloAiService;
 
     /**
      * Retrieve all inspections from database
@@ -158,6 +160,18 @@ public class InspectionService {
      * @return Updated InspectionDTO with image path
      */
     public Optional<InspectionDTO> uploadMaintenanceImage(Long inspectionNo, MultipartFile file, String weather) {
+        return uploadMaintenanceImage(inspectionNo, file, weather, 0.50); // Default confidence
+    }
+
+    /**
+     * Upload maintenance image for an inspection with custom confidence
+     * @param inspectionNo The inspection number
+     * @param file The image file to upload
+     * @param weather The weather conditions during inspection (optional)
+     * @param confidence The confidence threshold for AI analysis (0.1-1.0)
+     * @return Updated InspectionDTO with image path
+     */
+    public Optional<InspectionDTO> uploadMaintenanceImage(Long inspectionNo, MultipartFile file, String weather, Double confidence) {
         return inspectionRepository.findById(inspectionNo)
                 .map(inspection -> {
                     try {
@@ -184,9 +198,21 @@ public class InspectionService {
                             System.out.println("InspectionService - Weather parameter is null or empty, not setting weather");
                         }
                         
+                        // Set AI analysis status to pending (using state column)
+                        inspection.setState("AI Analysis Pending");
+                        inspection.setAiBoundingBoxes(null); // Clear previous analysis
+                        
+                        // Save inspection first to persist the image
                         Inspection savedInspection = inspectionRepository.save(inspection);
                         System.out.println("InspectionService - Maintenance image uploaded successfully: " + filename);
                         System.out.println("InspectionService - Weather saved to DB: '" + savedInspection.getWeather() + "'");
+                        
+                        // Trigger AI analysis asynchronously (in a separate thread to not block the response)
+                        // Copy bytes and filename here to avoid using MultipartFile after the request returns
+                        byte[] imageBytes = file.getBytes();
+                        String originalFilename = file.getOriginalFilename();
+                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, originalFilename, confidence);
+                        
                         return modelMapper.map(savedInspection, InspectionDTO.class);
                     } catch (IOException e) {
                         System.err.println("Failed to upload maintenance image for inspection: " + inspectionNo);
@@ -194,5 +220,79 @@ public class InspectionService {
                         throw new RuntimeException("Failed to upload maintenance image", e);
                     }
                 });
+    }
+    
+    /**
+     * Re-analyze existing maintenance image with different confidence threshold
+     * @param inspectionNo The inspection number
+     * @param confidence The confidence threshold for AI analysis (0.1-1.0)
+     * @return Updated InspectionDTO if found, empty Optional otherwise
+     */
+    public Optional<InspectionDTO> reanalyzeImage(Long inspectionNo, Double confidence) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    if (inspection.getMaintenanceImagePath() == null || inspection.getMaintenanceImagePath().trim().isEmpty()) {
+                        throw new RuntimeException("No maintenance image found for re-analysis");
+                    }
+                    
+                    try {
+                        // Set AI analysis status to pending (using state column)
+                        inspection.setState("AI Analysis Pending");
+                        inspection.setAiBoundingBoxes(null); // Clear previous analysis
+                        
+                        // Save inspection first to persist the pending status
+                        Inspection savedInspection = inspectionRepository.save(inspection);
+                        
+                        // Get image file from storage
+                        Path imagePath = imageStorageService.getImagePath(inspection.getMaintenanceImagePath(), false);
+                        byte[] imageBytes = java.nio.file.Files.readAllBytes(imagePath);
+                        
+                        // Trigger AI analysis asynchronously with new confidence
+                        analyzeImageAsync(savedInspection.getInspectionNo(), imageBytes, inspection.getMaintenanceImagePath(), confidence);
+                        
+                        return modelMapper.map(savedInspection, InspectionDTO.class);
+                    } catch (Exception e) {
+                        System.err.println("Failed to re-analyze image for inspection: " + inspectionNo);
+                        e.printStackTrace();
+                        throw new RuntimeException("Failed to re-analyze image", e);
+                    }
+                });
+    }
+    
+    /**
+     * Analyze image asynchronously using YOLO AI service with custom confidence
+     * @param inspectionNo The inspection number
+     * @param imageBytes The image bytes to analyze
+     * @param originalFilename The original filename
+     * @param confidence The confidence threshold for AI analysis
+     */
+    private void analyzeImageAsync(Long inspectionNo, byte[] imageBytes, String originalFilename, Double confidence) {
+        // Run analysis in a separate thread to not block the upload response
+        new Thread(() -> {
+            try {
+                System.out.println("InspectionService - Starting AI analysis for inspection: " + inspectionNo + " with confidence: " + confidence);
+                
+                // Call YOLO API for analysis with custom confidence
+                String boundingBoxes = yoloAiService.analyzeImage(imageBytes, originalFilename, confidence);
+                
+                // Update inspection with analysis results
+                inspectionRepository.findById(inspectionNo).ifPresent(inspection -> {
+                    inspection.setAiBoundingBoxes(boundingBoxes);
+                    inspection.setState("AI Analysis Completed");
+                    inspectionRepository.save(inspection);
+                    System.out.println("InspectionService - AI analysis completed for inspection: " + inspectionNo);
+                });
+                
+            } catch (Exception e) {
+                System.err.println("InspectionService - AI analysis failed for inspection: " + inspectionNo);
+                e.printStackTrace();
+                
+                // Update inspection with failure status
+                inspectionRepository.findById(inspectionNo).ifPresent(inspection -> {
+                    inspection.setState("AI Analysis Failed");
+                    inspectionRepository.save(inspection);
+                });
+            }
+        }).start();
     }
 }

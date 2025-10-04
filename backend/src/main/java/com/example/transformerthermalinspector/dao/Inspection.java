@@ -42,7 +42,9 @@ public class Inspection {
     @Column(name = "date_of_inspection_and_time", nullable = false)
     private LocalDateTime dateOfInspectionAndTime;
 
-    // Current status of the inspection - CAN BE NULL (determined later)
+    // Current status of the inspection AND AI analysis status - CAN BE NULL (determined later)
+    // Values: "Pending", "In progress", "Completed" for inspection status
+    // OR: "pending", "completed", "failed" for AI analysis status
     @Column(name = "state", nullable = true)
     private String state;
 
@@ -53,6 +55,10 @@ public class Inspection {
     // Weather conditions during inspection - CAN BE NULL (recorded later)
     @Column(name = "weather", nullable = true)
     private String weather;
+
+    // AI analysis results - bounding box coordinates from YOLO model - CAN BE NULL (analyzed later)
+    @Column(name = "ai_bounding_boxes", columnDefinition = "TEXT", nullable = true)
+    private String aiBoundingBoxes; // Stored as JSON string
 
     // Many inspections belong to one transformer
     @ManyToOne(fetch = FetchType.LAZY)

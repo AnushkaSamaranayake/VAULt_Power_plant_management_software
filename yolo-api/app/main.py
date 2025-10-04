@@ -33,7 +33,7 @@ def root():
     return {"message": "Welcome to the YOLOv8 Thermal Anomaly Detection API"}
 
 @app.post("/inference")
-#Sample API call: "http://localhost:8000/inference?conf_threshold=0.80"\ -F "file=@path_to_your_image.jpg"
+#Sample API call: "http://localhost:5000/inference?conf_threshold=0.80"\ -F "file=@path_to_your_image.jpg"
 #pass the threshold value between 0 and 1, default is 0.50 and pass the image file paht
 
 async def inference(

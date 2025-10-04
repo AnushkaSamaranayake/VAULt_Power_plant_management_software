@@ -48,7 +48,7 @@ public class InspectionController {
             InspectionDTO savedInspection = inspectionService.saveInspection(inspectionDTO);
             return new ResponseEntity<>(savedInspection, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -65,7 +65,7 @@ public class InspectionController {
             }
             return new ResponseEntity<>(inspections, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -96,7 +96,7 @@ public class InspectionController {
             }
             return new ResponseEntity<>(inspections, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -143,13 +143,39 @@ public class InspectionController {
     public ResponseEntity<InspectionDTO> uploadMaintenanceImage(
             @PathVariable("inspectionNo") Long inspectionNo,
             @RequestParam("image") MultipartFile file,
-            @RequestParam(value = "weather", required = false) String weather) {
+            @RequestParam(value = "weather", required = false) String weather,
+            @RequestParam(value = "confidence", required = false, defaultValue = "0.50") Double confidence) {
         try {
             if (file.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             
-            Optional<InspectionDTO> updatedInspection = inspectionService.uploadMaintenanceImage(inspectionNo, file, weather);
+            Optional<InspectionDTO> updatedInspection = inspectionService.uploadMaintenanceImage(inspectionNo, file, weather, confidence);
+            if (updatedInspection.isPresent()) {
+                return new ResponseEntity<>(updatedInspection.get(), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Re-analyze existing maintenance image with different confidence threshold
+     * POST /api/inspections/{inspectionNo}/reanalyze
+     */
+    @PostMapping("/{inspectionNo}/reanalyze")
+    public ResponseEntity<InspectionDTO> reanalyzeImage(
+            @PathVariable("inspectionNo") Long inspectionNo,
+            @RequestParam("confidence") Double confidence) {
+        try {
+            if (confidence < 0.1 || confidence > 1.0) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            
+            Optional<InspectionDTO> updatedInspection = inspectionService.reanalyzeImage(inspectionNo, confidence);
             if (updatedInspection.isPresent()) {
                 return new ResponseEntity<>(updatedInspection.get(), HttpStatus.OK);
             } else {
