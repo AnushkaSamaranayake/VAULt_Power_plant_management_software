@@ -1,5 +1,11 @@
 # Project GridWatch by VAULt 🤖⚡
 
+<p align="center">
+  <img src="images/gridwatch-high-resolution-logo.png" alt="GridWatch Logo" width="200" />
+  &nbsp;&nbsp;&nbsp; <!-- optional spacing -->
+  <img src="images/vault-high-resolution-logo.png" alt="Second Image" width="200" />
+</p>
+
 This repository contains the source code for **Project VAULt**, developed by **Team VAULt** from the **Department of Electronic & Telecommunication Engineering (EN)** at the **University of Moratuwa**, for the **EN3350 Software Design Competition** project.  
 
 The project aims to create a complete software solution for **automating thermal inspections of distribution transformers**. This includes:  
@@ -173,7 +179,7 @@ The backend will be available at:
 👉 http://localhost:8080
 
 ___
-# Vision Model (YOLOv8)
+# Vision Model for AI-Powered Thermal Image Analysis (YOLOv8)
 
 ## Getting Started
 Navigate to the 'yolo-api' directory.
@@ -196,6 +202,25 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
 The server will be now running on port 5000.
+
+---
+## Overview of the Detection Approach
+
+First we downloaded the dataset given and uploaded it to the **Roboflow** platform. There we defined 3 classes as follows.
+- **Normal** (Class 1) - Blue areas
+- **Faulty** (Class 0) - Reddish areas of the transformer body
+- **Potentially Faulty** (Class 2) - Orange,Yellowish areas of the transformer body and reddish areas of the wires
+
+After that images were manually annotated with these three classes and added data augmentation (Shear, Saturation, Blur) to the images and created a dataset with 273 images.
+
+Then dataset was split into the following criteria:
+- Train - 80 %
+- Validation - 12%
+- Test  - 8%
+
+Then a **YoloV8** model with 150 epochs was trained using a T4 GPU in Google Colab and the trained model then compiled in Pytorch binary file format (.pt) and hosted locally.
+
+More details on the full implementation of the model: [YOLOv8 Details](backend/AI_INTEGRATION_README.md)
 
 ---
 
