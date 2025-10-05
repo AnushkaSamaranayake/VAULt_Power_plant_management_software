@@ -121,6 +121,53 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
         setShowImageModal(true);
     };
 
+    const handleBaselineUpload = async (file) => {
+        if (!file || !transformer) return;
+
+        setIsUploading(true);
+        setUploadError(null);
+        setUploadProgress(0);
+        setShowUploadModal(true);
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('weather', selectedWeather);
+
+        try {
+            const response = await axios.post(
+                `http://localhost:8080/api/transformers/${transformer.transformerNo}/baseline-image`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(percentCompleted);
+                    }
+                }
+            );
+
+            console.log('Baseline upload response:', response.data);
+            if (response.data) {
+                setTransformer(response.data);
+            }
+
+            setTimeout(() => {
+                setShowUploadModal(false);
+                setIsUploading(false);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error uploading baseline image:', error);
+            setUploadError('Failed to upload baseline image. Please try again.');
+            setIsUploading(false);
+            setTimeout(() => {
+                setShowUploadModal(false);
+            }, 2000);
+        }
+    };
+
     return (
         <div className='flex flex-row items-start justify-between space-x-6'>
             {/* Upload Section */}
@@ -247,13 +294,39 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
+                            <div 
+                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const file = files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            const syntheticEvent = {
+                                                target: {
+                                                    files: [file]
+                                                }
+                                            };
+                                            handleFileUpload(syntheticEvent);
+                                        }
+                                    }
+                                }}
+                                onClick={() => setShowMaintenanceModal(true)}
+                            >
                                 <div className='text-center text-gray-500'>
-                                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
-                                    </svg>
-                                    <p className='text-sm font-medium'>No maintenance image</p>
-                                    <p className='text-xs'>Upload an inspection image</p>
+                                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                                    <p className='text-sm font-medium'>Drop maintenance image here</p>
+                                    <p className='text-xs'>or click to browse</p>
+                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
                                 </div>
                             </div>
                         )}
@@ -282,13 +355,44 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
+                            <div 
+                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const file = files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            handleBaselineUpload(file);
+                                        }
+                                    }
+                                }}
+                                onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/jpeg,image/png,image/gif';
+                                    input.onchange = (e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            handleBaselineUpload(e.target.files[0]);
+                                        }
+                                    };
+                                    input.click();
+                                }}
+                            >
                                 <div className='text-center text-gray-500'>
-                                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <p className='text-sm font-medium'>No baseline image</p>
-                                    <p className='text-xs'>Upload baseline for comparison</p>
+                                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                                    <p className='text-sm font-medium'>Drop baseline image here</p>
+                                    <p className='text-xs'>or click to browse</p>
+                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
                                 </div>
                             </div>
                         )}
