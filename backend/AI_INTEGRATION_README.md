@@ -79,22 +79,15 @@ Response:
 
 ## Setup Instructions
 
-### 1. Database Migration
-Run the following SQL to add new columns:
-```sql
-ALTER TABLE inspection 
-ADD COLUMN ai_bounding_boxes TEXT,
-ADD COLUMN ai_analysis_status VARCHAR(50);
-```
 
-### 2. Start YOLO FastAPI Service
+### 1. Start YOLO FastAPI Service
 ```bash
 cd yolo-api
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 5000
 ```
 
-3. **Verify YOLO API is running:**
+2. **Verify YOLO API is running:**
 ```bash
 curl http://localhost:5000/
 ```
@@ -105,7 +98,7 @@ curl http://localhost:8000/
 # Should return: {"message": "Welcome to the YOLOv8 Thermal Anomaly Detection API"}
 ```
 
-### 4. Start Spring Boot Backend
+### 5. Start Spring Boot Backend
 ```bash
 cd backend
 ./mvnw spring-boot:run
@@ -175,28 +168,7 @@ curl -X POST "http://localhost:5000/inference?conf_threshold=0.50" \
 3. Status should change from "pending" → "completed"
 4. `ai_bounding_boxes` should contain JSON with predictions
 
-## Performance Considerations
 
-- AI analysis runs **asynchronously** to not block image upload
-- Frontend can poll inspection endpoint to check when analysis completes
-- Consider adding WebSocket for real-time updates in future
 
-## Troubleshooting
 
-### AI analysis stuck on "pending"
-- Check if YOLO API is running: `curl http://localhost:5000/`
-- Check Spring Boot logs for errors
-- Verify image format is supported (JPG, PNG)
 
-### "failed" status
-- Check YOLO API logs
-- Verify model file exists at `yolo-api/models/best.pt`
-- Ensure Python dependencies are installed
-
-## Future Enhancements
-
-- [ ] WebSocket for real-time AI results push
-- [ ] Configurable confidence threshold per upload
-- [ ] Multiple model support (switch between models)
-- [ ] Batch processing for multiple images
-- [ ] AI analysis history/audit trail
