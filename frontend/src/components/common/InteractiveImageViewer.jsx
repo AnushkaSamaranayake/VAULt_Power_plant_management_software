@@ -8,7 +8,6 @@ const InteractiveImageViewer = ({
     containerClassName = '',
     showControls = true,
     onImageLoad = null,
-    onTransformChange = null, // New prop to pass transform state
     children = null // For overlay content like bounding boxes
 }) => {
     const [scale, setScale] = useState(1);
@@ -19,13 +18,6 @@ const InteractiveImageViewer = ({
     
     const containerRef = useRef(null);
     const imageRef = useRef(null);
-
-    // Notify parent of transform changes
-    useEffect(() => {
-        if (onTransformChange) {
-            onTransformChange({ scale, position });
-        }
-    }, [scale, position, onTransformChange]);
 
     // Reset transform to initial state
     const resetTransform = useCallback(() => {
@@ -165,13 +157,7 @@ const InteractiveImageViewer = ({
                         className="absolute top-0 left-0 w-full h-full"
                         style={overlayStyle}
                     >
-                        {React.isValidElement(children) 
-                            ? React.cloneElement(children, { 
-                                transform: { scale, position },
-                                imageRef: imageRef 
-                            })
-                            : children
-                        }
+                        {children}
                     </div>
                 )}
             </div>
