@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, Eye, Trash2, X, AlertCircle } from 'lucide-react';
+import InteractiveImageViewer from '../common/InteractiveImageViewer';
+import InteractiveImageModal from '../common/InteractiveImageModal';
 
 const BaselineImageUpload = ({ transformer, onTransformerUpdate }) => {
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -188,16 +190,23 @@ const BaselineImageUpload = ({ transformer, onTransformerUpdate }) => {
                     {transformer?.baselineImagePath ? (
                         <div>
                             <h3 className='font-semibold text-md mb-4'>Baseline Image Preview</h3>
-                            <div className='relative group'>
-                                <img 
-                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
-                                    alt="Baseline Thermal Image" 
-                                    className='w-full max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                            <div className='relative' style={{ height: '320px' }}>
+                                <InteractiveImageViewer
+                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`}
+                                    alt="Baseline Thermal Image"
+                                    className="rounded-lg"
+                                    containerClassName="w-full h-full border shadow-sm"
+                                    showControls={true}
                                 />
-                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
-                                    <Eye className='w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
-                                </div>
+                                
+                                {/* Full-screen button */}
+                                <button
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                                    className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg p-2 shadow-lg transition-all duration-200"
+                                    title="Open in full screen"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                </button>
                             </div>
                             
                             <div className='mt-4 grid grid-cols-1 gap-3 text-sm'>
@@ -260,23 +269,15 @@ const BaselineImageUpload = ({ transformer, onTransformerUpdate }) => {
                 </div>
             )}
 
-            {/* Image View Modal */}
+            {/* Interactive Image View Modal */}
             {showImageModal && currentImageUrl && (
-                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50'>
-                    <div className='relative max-w-6xl max-h-full p-4'>
-                        <button
-                            onClick={() => setShowImageModal(false)}
-                            className='absolute top-4 right-4 p-2 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all duration-200'
-                        >
-                            <X className='w-6 h-6' />
-                        </button>
-                        <img 
-                            src={currentImageUrl} 
-                            alt="Full Size Baseline Thermal Image" 
-                            className='max-w-full max-h-full object-contain rounded-lg'
-                        />
-                    </div>
-                </div>
+                <InteractiveImageModal
+                    isOpen={showImageModal}
+                    onClose={() => setShowImageModal(false)}
+                    src={currentImageUrl}
+                    alt="Baseline Thermal Image - Full Screen"
+                    title="Baseline Thermal Image"
+                />
             )}
         </div>
     );
