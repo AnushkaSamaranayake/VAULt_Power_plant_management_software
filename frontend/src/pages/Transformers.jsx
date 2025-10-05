@@ -5,7 +5,9 @@ import TransformerTable from '../components/Transformers/TransformerTable'
 // import inspections from '../constants/inspections.json'
 import { useState, useEffect } from 'react'
 import Footer from '../components/Footer'
-import { useParams } from 'react-router-dom'
+// import { useParams } from 'react-router-dom'
+import NavigationBar from '../components/NavigationBar'
+
 
 const Transformers = () => {
 
@@ -77,7 +79,8 @@ const Transformers = () => {
 
     return (
         <>
-            <div className='flex flex-col m-10 min-h-screen'>
+            <NavigationBar />
+            <div className='flex flex-col mx-10 mt-20 min-h-screen'>
                 <div className='flex flex-row justify-between items-center mb-10'>
                     <h1 className='text-3xl font-bold text-blue-900'>Transformers</h1>
                 </div>
