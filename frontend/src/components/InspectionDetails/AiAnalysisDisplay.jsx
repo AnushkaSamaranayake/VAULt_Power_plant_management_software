@@ -183,8 +183,8 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
 
     return (
         <div className="mt-6 space-y-4">
-            <style jsx>{`
-                .slider::-webkit-slider-thumb {
+            <style>{`
+                .confidence-slider::-webkit-slider-thumb {
                     appearance: none;
                     height: 20px;
                     width: 20px;
@@ -194,7 +194,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                     border: 2px solid #FFFFFF;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 }
-                .slider::-moz-range-thumb {
+                .confidence-slider::-moz-range-thumb {
                     height: 20px;
                     width: 20px;
                     border-radius: 50%;
@@ -253,7 +253,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                     step="0.05"
                                     value={confidence}
                                     onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer confidence-slider"
                                     disabled={isReanalyzing || getAiStatus() === 'pending'}
                                 />
                                 <span className="text-xs text-gray-500">100%</span>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Upload, Eye, Trash2, X, AlertCircle } from 'lucide-react';
@@ -16,6 +16,23 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     const [selectedWeather, setSelectedWeather] = useState('sunny');
     const [uploadError, setUploadError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [transformer, setTransformer] = useState(null);
+
+    // Fetch transformer data for baseline image
+    useEffect(() => {
+        if (inspection?.transformerNo) {
+            const fetchTransformer = async () => {
+                try {
+                    const response = await axios.get(`http://localhost:8080/api/transformers/${inspection.transformerNo}`);
+                    setTransformer(response.data);
+                } catch (error) {
+                    console.error('Failed to fetch transformer data:', error);
+                    setTransformer(null);
+                }
+            };
+            fetchTransformer();
+        }
+    }, [inspection?.transformerNo]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -102,6 +119,53 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     const handleViewImage = (imageUrl) => {
         setCurrentImageUrl(imageUrl);
         setShowImageModal(true);
+    };
+
+    const handleBaselineUpload = async (file) => {
+        if (!file || !transformer) return;
+
+        setIsUploading(true);
+        setUploadError(null);
+        setUploadProgress(0);
+        setShowUploadModal(true);
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('weather', selectedWeather);
+
+        try {
+            const response = await axios.post(
+                `http://localhost:8080/api/transformers/${transformer.transformerNo}/baseline-image`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(percentCompleted);
+                    }
+                }
+            );
+
+            console.log('Baseline upload response:', response.data);
+            if (response.data) {
+                setTransformer(response.data);
+            }
+
+            setTimeout(() => {
+                setShowUploadModal(false);
+                setIsUploading(false);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error uploading baseline image:', error);
+            setUploadError('Failed to upload baseline image. Please try again.');
+            setIsUploading(false);
+            setTimeout(() => {
+                setShowUploadModal(false);
+            }, 2000);
+        }
     };
 
     return (
@@ -203,47 +267,169 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                 )}
             </div>
 
-            {/* Image Display Section */}
-            {inspection?.maintenanceImagePath && (
-                <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
-                    <div className='flex flex-row items-center justify-between mb-6'>
-                        <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
-                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
-                            {inspection?.status}
-                        </div>
+            {/* Image Display Section - Side by Side Comparison */}
+            <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
+                <div className='flex flex-row items-center justify-between mb-6'>
+                    <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
+                    <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
+                        {inspection?.status}
                     </div>
-                    
-                    <div className='flex justify-center'>
-                        <div className='relative group'>
-                            <img 
-                                src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
-                                alt="Maintenance Thermal Inspection" 
-                                className='max-w-full max-h-96 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
-                            />
-                            <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
-                                <Eye className='w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                </div>
+                
+                {/* Side-by-Side Image Display */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
+                    {/* Current Inspection Image */}
+                    <div className='space-y-2'>
+                        <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
+                        {inspection?.maintenanceImagePath ? (
+                            <div className='relative group'>
+                                <img 
+                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
+                                    alt="Current Inspection Image" 
+                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
+                                />
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
+                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                                </div>
                             </div>
+                        ) : (
+                            <div 
+                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const file = files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            const syntheticEvent = {
+                                                target: {
+                                                    files: [file]
+                                                }
+                                            };
+                                            handleFileUpload(syntheticEvent);
+                                        }
+                                    }
+                                }}
+                                onClick={() => setShowMaintenanceModal(true)}
+                            >
+                                <div className='text-center text-gray-500'>
+                                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                                    <p className='text-sm font-medium'>Drop maintenance image here</p>
+                                    <p className='text-xs'>or click to browse</p>
+                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className='text-xs text-gray-500'>
+                            {inspection?.maintenanceImageUploadDateAndTime ? 
+                                `Uploaded: ${new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString()}` :
+                                'No image uploaded'
+                            }
+                            {inspection?.weather && ` • Weather: ${inspection.weather}`}
                         </div>
                     </div>
-                    
-                    <div className='mt-4 grid grid-cols-2 gap-4 text-sm'>
-                        <div className='p-3 bg-gray-50 rounded-lg'>
-                            <p className='font-medium text-gray-700'>Upload Date</p>
-                            <p className='text-gray-600'>
-                                {inspection.maintenanceImageUploadDateAndTime ? 
-                                    new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString() :
-                                    'N/A'
-                                }
-                            </p>
-                        </div>
-                        <div className='p-3 bg-gray-50 rounded-lg'>
-                            <p className='font-medium text-gray-700'>Weather Conditions</p>
-                            <p className='text-gray-600 capitalize'>{inspection.weather || 'N/A'}</p>
+
+                    {/* Baseline Reference Image */}
+                    <div className='space-y-2'>
+                        <h3 className='text-sm font-semibold text-gray-700'>Baseline Reference</h3>
+                        {transformer?.baselineImagePath ? (
+                            <div className='relative group'>
+                                <img 
+                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
+                                    alt="Baseline Reference Image" 
+                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                                />
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
+                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                                </div>
+                            </div>
+                        ) : (
+                            <div 
+                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const file = files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            handleBaselineUpload(file);
+                                        }
+                                    }
+                                }}
+                                onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/jpeg,image/png,image/gif';
+                                    input.onchange = (e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            handleBaselineUpload(e.target.files[0]);
+                                        }
+                                    };
+                                    input.click();
+                                }}
+                            >
+                                <div className='text-center text-gray-500'>
+                                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                                    <p className='text-sm font-medium'>Drop baseline image here</p>
+                                    <p className='text-xs'>or click to browse</p>
+                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className='text-xs text-gray-500'>
+                            {transformer?.baselineImageUploadDateAndTime ? 
+                                `Captured: ${new Date(transformer.baselineImageUploadDateAndTime).toLocaleDateString()}` :
+                                'Baseline not set'
+                            }
+                            {transformer?.weather && ` • Weather: ${transformer.weather}`}
                         </div>
                     </div>
                 </div>
-            )}
+                
+                {/* Metadata Grid */}
+                <div className='grid grid-cols-2 gap-4 text-sm'>
+                    <div className='p-3 bg-gray-50 rounded-lg'>
+                        <p className='font-medium text-gray-700'>Inspection Date</p>
+                        <p className='text-gray-600'>
+                            {inspection?.maintenanceImageUploadDateAndTime ? 
+                                new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString() :
+                                'N/A'
+                            }
+                        </p>
+                    </div>
+                    <div className='p-3 bg-gray-50 rounded-lg'>
+                        <p className='font-medium text-gray-700'>Comparison Status</p>
+                        <p className='text-gray-600'>
+                            {inspection?.maintenanceImagePath && transformer?.baselineImagePath ? 
+                                <span className='text-green-600'>✓ Ready for comparison</span> :
+                                inspection?.maintenanceImagePath ? 
+                                <span className='text-orange-600'>⚠ No baseline available</span> :
+                                <span className='text-gray-600'>⊘ No images available</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             {/* Maintenance Image Upload Modal */}
             {showMaintenanceModal && (

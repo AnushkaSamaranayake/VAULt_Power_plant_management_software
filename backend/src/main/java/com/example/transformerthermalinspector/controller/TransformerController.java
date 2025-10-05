@@ -201,7 +201,7 @@ public class TransformerController {
     @GetMapping("/images/{filename}")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {
         try {
-            Path filePath = Paths.get("uploads/images").resolve(filename);
+            Path filePath = Paths.get("uploads/baseline").resolve(filename);
             Resource resource = new UrlResource(filePath.toUri());
             
             if (resource.exists() && resource.isReadable()) {
