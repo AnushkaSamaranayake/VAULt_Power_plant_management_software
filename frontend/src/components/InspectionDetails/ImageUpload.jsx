@@ -221,20 +221,20 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             </div>
 
             {/* Image Display Section - Side by Side Comparison */}
-            {inspection?.maintenanceImagePath && (
-                <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
-                    <div className='flex flex-row items-center justify-between mb-6'>
-                        <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
-                        <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
-                            {inspection?.status}
-                        </div>
+            <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
+                <div className='flex flex-row items-center justify-between mb-6'>
+                    <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
+                    <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
+                        {inspection?.status}
                     </div>
-                    
-                    {/* Side-by-Side Image Display */}
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
-                        {/* Current Inspection Image */}
-                        <div className='space-y-2'>
-                            <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
+                </div>
+                
+                {/* Side-by-Side Image Display */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
+                    {/* Current Inspection Image */}
+                    <div className='space-y-2'>
+                        <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
+                        {inspection?.maintenanceImagePath ? (
                             <div className='relative group'>
                                 <img 
                                     src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
@@ -246,74 +246,86 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                     <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
                                 </div>
                             </div>
-                            <div className='text-xs text-gray-500'>
-                                {inspection.maintenanceImageUploadDateAndTime ? 
-                                    `Uploaded: ${new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString()}` :
-                                    'Upload date not available'
-                                }
-                                {inspection.weather && ` • Weather: ${inspection.weather}`}
-                            </div>
-                        </div>
-
-                        {/* Baseline Reference Image */}
-                        <div className='space-y-2'>
-                            <h3 className='text-sm font-semibold text-gray-700'>Baseline Reference</h3>
-                            {transformer?.baselineImagePath ? (
-                                <div className='relative group'>
-                                    <img 
-                                        src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
-                                        alt="Baseline Reference Image" 
-                                        className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                        onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
-                                    />
-                                    <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
-                                        <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
-                                    </div>
+                        ) : (
+                            <div className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
+                                <div className='text-center text-gray-500'>
+                                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
+                                    </svg>
+                                    <p className='text-sm font-medium'>No maintenance image</p>
+                                    <p className='text-xs'>Upload an inspection image</p>
                                 </div>
-                            ) : (
-                                <div className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
-                                    <div className='text-center text-gray-500'>
-                                        <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <p className='text-sm'>No baseline image</p>
-                                        <p className='text-xs'>Upload baseline for comparison</p>
-                                    </div>
-                                </div>
-                            )}
-                            <div className='text-xs text-gray-500'>
-                                {transformer?.baselineImageUploadDateAndTime ? 
-                                    `Captured: ${new Date(transformer.baselineImageUploadDateAndTime).toLocaleDateString()}` :
-                                    'Baseline not set'
-                                }
-                                {transformer?.weather && ` • Weather: ${transformer.weather}`}
                             </div>
+                        )}
+                        <div className='text-xs text-gray-500'>
+                            {inspection?.maintenanceImageUploadDateAndTime ? 
+                                `Uploaded: ${new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString()}` :
+                                'No image uploaded'
+                            }
+                            {inspection?.weather && ` • Weather: ${inspection.weather}`}
                         </div>
                     </div>
-                    
-                    {/* Metadata Grid */}
-                    <div className='grid grid-cols-2 gap-4 text-sm'>
-                        <div className='p-3 bg-gray-50 rounded-lg'>
-                            <p className='font-medium text-gray-700'>Inspection Date</p>
-                            <p className='text-gray-600'>
-                                {inspection.maintenanceImageUploadDateAndTime ? 
-                                    new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString() :
-                                    'N/A'
-                                }
-                            </p>
-                        </div>
-                        <div className='p-3 bg-gray-50 rounded-lg'>
-                            <p className='font-medium text-gray-700'>Comparison Status</p>
-                            <p className='text-gray-600'>
-                                {transformer?.baselineImagePath ? 
-                                    <span className='text-green-600'>✓ Baseline available</span> :
-                                    <span className='text-orange-600'>⚠ No baseline</span>
-                                }
-                            </p>
+
+                    {/* Baseline Reference Image */}
+                    <div className='space-y-2'>
+                        <h3 className='text-sm font-semibold text-gray-700'>Baseline Reference</h3>
+                        {transformer?.baselineImagePath ? (
+                            <div className='relative group'>
+                                <img 
+                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
+                                    alt="Baseline Reference Image" 
+                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                                />
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
+                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50'>
+                                <div className='text-center text-gray-500'>
+                                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p className='text-sm font-medium'>No baseline image</p>
+                                    <p className='text-xs'>Upload baseline for comparison</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className='text-xs text-gray-500'>
+                            {transformer?.baselineImageUploadDateAndTime ? 
+                                `Captured: ${new Date(transformer.baselineImageUploadDateAndTime).toLocaleDateString()}` :
+                                'Baseline not set'
+                            }
+                            {transformer?.weather && ` • Weather: ${transformer.weather}`}
                         </div>
                     </div>
                 </div>
-            )}
+                
+                {/* Metadata Grid */}
+                <div className='grid grid-cols-2 gap-4 text-sm'>
+                    <div className='p-3 bg-gray-50 rounded-lg'>
+                        <p className='font-medium text-gray-700'>Inspection Date</p>
+                        <p className='text-gray-600'>
+                            {inspection?.maintenanceImageUploadDateAndTime ? 
+                                new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString() :
+                                'N/A'
+                            }
+                        </p>
+                    </div>
+                    <div className='p-3 bg-gray-50 rounded-lg'>
+                        <p className='font-medium text-gray-700'>Comparison Status</p>
+                        <p className='text-gray-600'>
+                            {inspection?.maintenanceImagePath && transformer?.baselineImagePath ? 
+                                <span className='text-green-600'>✓ Ready for comparison</span> :
+                                inspection?.maintenanceImagePath ? 
+                                <span className='text-orange-600'>⚠ No baseline available</span> :
+                                <span className='text-gray-600'>⊘ No images available</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             {/* Maintenance Image Upload Modal */}
             {showMaintenanceModal && (
