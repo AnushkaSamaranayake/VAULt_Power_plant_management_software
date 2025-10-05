@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'; // <--- Ensure useEffect and useState are imported
 import Footer from '../components/Footer';
 import Health from '../components/Dashboard/Health'
 import Inspection from '../components/Dashboard/Inspection'
@@ -6,22 +6,49 @@ import Notification from '../components/Dashboard/Notification'
 import Recent from '../components/Dashboard/Recent'
 import Addition from '../components/Dashboard/Addition'
 import { branches } from '../constants';
-// import { useNavigate } from 'react-router';
 import NavigationBar from '../components/NavigationBar';
+// Import the new animated background component
+import AnimatedBackground from '../components/Dashboard/AnimatedBackground'; 
 
 const Dashboard = () => {
-
-    // const navigate = useNavigate();
-
     const [branch, setBranch] = React.useState("");
+    const [scrollPercentage, setScrollPercentage] = useState(0); // <--- New state for scroll
+
+    // 3. Hook to track scroll position
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            
+            // Calculate scroll percentage (capped at 100%)
+            const percent = Math.min(100, (scrollTop / docHeight) * 100);
+            setScrollPercentage(percent);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        // Call it once on mount to set initial position
+        handleScroll(); 
+
+        // Cleanup the event listener when the component unmounts
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     return (
         <>
+            {/* 4. Pass the scroll percentage to the AnimatedBackground component */}
+            <AnimatedBackground scrollPercentage={scrollPercentage} /> 
+            
             <NavigationBar />
-            <div className='flex flex-col min-h-screen mt-16'>
+            
+            {/* NOTE: You need enough content for the page to scroll. 
+                Ensure the total height of all your content (including components) 
+                is greater than the viewport height.
+            */}
+            <div className='flex flex-col min-h-screen mt-16 relative z-0'> 
                 <div className='items-center'>
                     <h1 className='text-center mt-20 text-5xl font-bold'>Transformer <span className='text-blue-500'>Management</span> System</h1>
                 </div>
+                {/* ... rest of your existing Dashboard content ... */}
                 <div className='flex flex-row justify-between items-center mt-20 mb-5 mx-10'>
                     <h1 className='text-3xl font-bold text-blue-900'>Dashboard</h1>
                 </div>
@@ -29,11 +56,12 @@ const Dashboard = () => {
                     <label htmlFor="branch-name" className='mr-8 text-md'>Branch</label>
                     <select name="branch-name" id="branch-name" value={branch} onChange={(e) => setBranch(e.target.value)} className='border border-none bg-yellow-50 p-2 rounded-lg w-60 text-center text-sm'>
                         <option value="" disabled>Select Branch</option>
-                        {branches.map((branch) => (
-                            <option key={branch.value} value={branch.value}>{branch.label}</option>
+                        {branches.map((b) => ( // changed 'branch' to 'b' to avoid conflict with the state variable
+                            <option key={b.value} value={b.value}>{b.label}</option>
                         ))}
                     </select>
                 </div>
+                
                 <div className='flex flex-row m-10 justify-between items-start'>
                     <div className='text-center w-1/3 h-100% bg-yellow-50 mr-6'>
                         <Health />
@@ -53,7 +81,6 @@ const Dashboard = () => {
                         <Notification />
                     </div>
                 </div>
-                
             </div>
             <Footer />
         </>
