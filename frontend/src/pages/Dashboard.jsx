@@ -6,11 +6,11 @@ import Notification from '../components/Dashboard/Notification'
 import Recent from '../components/Dashboard/Recent'
 import Addition from '../components/Dashboard/Addition'
 import { branches } from '../constants';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
 
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const [branch, setBranch] = React.useState("");
 
