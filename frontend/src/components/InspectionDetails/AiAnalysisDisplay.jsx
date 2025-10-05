@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings } from 'lucide-react';
 import axios from 'axios';
+import InteractiveImageModal from '../common/InteractiveImageModal';
+import BoundingBoxOverlay from '../common/BoundingBoxOverlay';
+import AnomalyMetadataModal from './AnomalyMetadataModal';
 
 const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [boundingBoxes, setBoundingBoxes] = useState([]);
@@ -8,8 +11,13 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [confidence, setConfidence] = useState(0.50);
     const [isReanalyzing, setIsReanalyzing] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [showMetadataModal, setShowMetadataModal] = useState(false);
+    const [selectedAnomaly, setSelectedAnomaly] = useState(null);
+    const [selectedAnomalyIndex, setSelectedAnomalyIndex] = useState(null);
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
+    const modalCanvasRef = useRef(null);
 
     // Parse bounding boxes when inspection data changes
     useEffect(() => {
@@ -34,82 +42,6 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         if (state.includes('ai analysis completed') || state === 'completed') return 'completed';
         if (state.includes('ai analysis failed') || state === 'failed') return 'failed';
         return null;
-    };
-
-    // Draw bounding boxes on canvas
-    useEffect(() => {
-        if (showBoxes && boundingBoxes.length > 0 && imageRef.current && canvasRef.current) {
-            const image = imageRef.current;
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-
-            // Wait for image to load
-            if (image.complete) {
-                drawBoundingBoxes();
-            } else {
-                image.onload = drawBoundingBoxes;
-            }
-        }
-    }, [showBoxes, boundingBoxes]);
-
-    const drawBoundingBoxes = () => {
-        const image = imageRef.current;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-
-        // Set canvas size to match image
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
-
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (!showBoxes) return;
-
-        // Draw each bounding box
-        boundingBoxes.forEach((prediction) => {
-            const [x1, y1, x2, y2] = prediction.box;
-            const width = x2 - x1;
-            const height = y2 - y1;
-
-            // Color based on class
-            let color, label;
-            switch (prediction.class) {
-                case 0:
-                    color = '#ef4444'; // Red - Faulty
-                    label = 'Faulty';
-                    break;
-                case 1:
-                    color = '#10b981'; // Green - Normal
-                    label = 'Normal';
-                    break;
-                case 2:
-                    color = '#f59e0b'; // Orange - Potentially Faulty
-                    label = 'Potentially Faulty';
-                    break;
-                default:
-                    color = '#6b7280'; // Gray
-                    label = 'Unknown';
-            }
-
-            // Draw rectangle
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x1, y1, width, height);
-
-            // Draw label background
-            const labelText = `${label} (${(prediction.confidence * 100).toFixed(1)}%)`;
-            ctx.font = 'bold 16px Arial';
-            const textMetrics = ctx.measureText(labelText);
-            const textHeight = 20;
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(x1, y1 - textHeight - 4, textMetrics.width + 8, textHeight + 4);
-
-            // Draw label text
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText(labelText, x1 + 4, y1 - 6);
-        });
     };
 
     const getStatusIcon = () => {
@@ -175,6 +107,13 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             console.error('Failed to reanalyze image:', error);
             setIsReanalyzing(false);
         }
+    };
+
+    // Handle bounding box click to show metadata
+    const handleBoundingBoxClick = (anomalyData, index) => {
+        setSelectedAnomaly(anomalyData);
+        setSelectedAnomalyIndex(index);
+        setShowMetadataModal(true);
     };
 
     if (!inspection?.maintenanceImagePath) {
@@ -276,20 +215,34 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             {/* Analysis Results */}
             {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
                 <>
-                    {/* Image with Bounding Boxes */}
-                    <div className="relative border rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                            ref={imageRef}
-                            src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
-                            alt="Thermal Analysis"
-                            className="w-full h-auto"
-                            crossOrigin="anonymous"
-                        />
-                        <canvas
-                            ref={canvasRef}
-                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                            style={{ display: showBoxes ? 'block' : 'none' }}
-                        />
+                    {/* Static Image with Bounding Boxes */}
+                    <div className="border rounded-lg overflow-hidden bg-gray-100 relative" style={{ height: '420px' }}>
+                        <div className="relative w-full h-full">
+                            <img
+                                ref={imageRef}
+                                src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                                alt="Thermal Analysis"
+                                className="w-full h-full object-contain"
+                                crossOrigin="anonymous"
+                            />
+                            <BoundingBoxOverlay
+                                boundingBoxes={boundingBoxes}
+                                showBoxes={showBoxes}
+                                imageRef={imageRef}
+                                className="absolute top-0 left-0"
+                            />
+                        </div>
+                        
+                        {/* Full-screen button */}
+                        <button
+                            onClick={() => setShowImageModal(true)}
+                            className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg p-2 shadow-lg transition-all duration-200"
+                            title="Open in full screen"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                        </button>
                     </div>
 
                     {/* Controls */}
@@ -308,19 +261,44 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                         </span>
                     </div>
 
+                    {/* Click instruction */}
+                    {showBoxes && boundingBoxes.length > 0 && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-sm text-blue-800">
+                                💡 <strong>Tip:</strong> Click on any error in the detection details below to view detailed metadata including pixel coordinates, dimensions, and severity score.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Detection Details */}
                     <div className="space-y-2">
                         <h3 className="font-semibold text-sm text-gray-700">Detection Details:</h3>
                         {boundingBoxes.map((pred, idx) => {
                             const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                             const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
+                            const bgColorClass = pred.class === 0 ? 'hover:bg-red-50' : pred.class === 1 ? 'hover:bg-green-50' : 'hover:bg-orange-50';
+                            const borderColorClass = pred.class === 0 ? 'border-red-200' : pred.class === 1 ? 'border-green-200' : 'border-orange-200';
                             
                             return (
-                                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                                    <span className={`font-medium ${colorClass}`}>{className}</span>
-                                    <span className="text-gray-600">
-                                        Confidence: {(pred.confidence * 100).toFixed(1)}%
-                                    </span>
+                                <div 
+                                    key={idx} 
+                                    onClick={() => handleBoundingBoxClick(pred, idx)}
+                                    className={`flex items-center justify-between p-3 bg-gray-50 ${bgColorClass} border ${borderColorClass} rounded-lg text-sm cursor-pointer transition-all duration-200 hover:shadow-sm`}
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className={`w-6 h-6 rounded-full ${colorClass} bg-white border-2 flex items-center justify-center text-xs font-bold`} style={{ borderColor: pred.class === 0 ? '#ef4444' : pred.class === 1 ? '#10b981' : '#f59e0b' }}>
+                                            {idx + 1}
+                                        </div>
+                                        <span className={`font-medium ${colorClass}`}>Error {idx + 1}: {className}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-gray-600">
+                                            Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                        </span>
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
                                 </div>
                             );
                         })}
@@ -343,6 +321,31 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                     <p className="text-sm text-red-600">AI analysis failed. Please try re-uploading the image.</p>
                 </div>
             )}
+            
+            {/* Full-screen Image Modal */}
+            {showImageModal && inspection?.maintenanceImagePath && (
+                <InteractiveImageModal
+                    isOpen={showImageModal}
+                    onClose={() => setShowImageModal(false)}
+                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                    alt="Thermal Analysis - Full Screen"
+                    title="AI Analysis - Thermal Image"
+                >
+                    <BoundingBoxOverlay
+                        boundingBoxes={boundingBoxes}
+                        showBoxes={showBoxes}
+                        imageRef={imageRef}
+                    />
+                </InteractiveImageModal>
+            )}
+
+            {/* Anomaly Metadata Modal */}
+            <AnomalyMetadataModal
+                isOpen={showMetadataModal}
+                onClose={() => setShowMetadataModal(false)}
+                anomalyData={selectedAnomaly}
+                anomalyIndex={selectedAnomalyIndex}
+            />
         </div>
     );
 };

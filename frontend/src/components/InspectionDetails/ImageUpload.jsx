@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Upload, Eye, Trash2, X, AlertCircle } from 'lucide-react';
+import InteractiveImageViewer from '../common/InteractiveImageViewer';
+import InteractiveImageModal from '../common/InteractiveImageModal';
 
 const ImageUpload = ({ inspection, onInspectionUpdate }) => {
 
@@ -276,26 +278,34 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                     </div>
                 </div>
                 
-                {/* Side-by-Side Image Display */}
-                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
+                {/* Single Image Display - Current Inspection Only */}
+                <div className='mb-4'>
                     {/* Current Inspection Image */}
                     <div className='space-y-2'>
                         <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
                         {inspection?.maintenanceImagePath ? (
-                            <div className='relative group'>
-                                <img 
-                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
-                                    alt="Current Inspection Image" 
-                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                    onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
+                            <div className='relative' style={{ height: '420px' }}>
+                                <InteractiveImageViewer
+                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                                    alt="Current Inspection Image"
+                                    className="rounded-lg"
+                                    containerClassName="w-full h-full border shadow-sm"
+                                    showControls={true}
                                 />
-                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
-                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
-                                </div>
+                                
+                                {/* Full-screen button */}
+                                <button
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
+                                    className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg p-2 shadow-lg transition-all duration-200"
+                                    title="Open in full screen"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                </button>
                             </div>
                         ) : (
                             <div 
-                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                className='w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                style={{ height: '420px' }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
@@ -336,72 +346,6 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                 'No image uploaded'
                             }
                             {inspection?.weather && ` • Weather: ${inspection.weather}`}
-                        </div>
-                    </div>
-
-                    {/* Baseline Reference Image */}
-                    <div className='space-y-2'>
-                        <h3 className='text-sm font-semibold text-gray-700'>Baseline Reference</h3>
-                        {transformer?.baselineImagePath ? (
-                            <div className='relative group'>
-                                <img 
-                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
-                                    alt="Baseline Reference Image" 
-                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
-                                />
-                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
-                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
-                                </div>
-                            </div>
-                        ) : (
-                            <div 
-                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.add('border-orange-500', 'bg-orange-50');
-                                }}
-                                onDragLeave={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
-                                }}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
-                                    const files = e.dataTransfer.files;
-                                    if (files.length > 0) {
-                                        const file = files[0];
-                                        if (file.type.startsWith('image/')) {
-                                            handleBaselineUpload(file);
-                                        }
-                                    }
-                                }}
-                                onClick={() => {
-                                    const input = document.createElement('input');
-                                    input.type = 'file';
-                                    input.accept = 'image/jpeg,image/png,image/gif';
-                                    input.onchange = (e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            handleBaselineUpload(e.target.files[0]);
-                                        }
-                                    };
-                                    input.click();
-                                }}
-                            >
-                                <div className='text-center text-gray-500'>
-                                    <Upload className="w-8 h-8 mx-auto mb-2" />
-                                    <p className='text-sm font-medium'>Drop baseline image here</p>
-                                    <p className='text-xs'>or click to browse</p>
-                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
-                                </div>
-                            </div>
-                        )}
-                        <div className='text-xs text-gray-500'>
-                            {transformer?.baselineImageUploadDateAndTime ? 
-                                `Captured: ${new Date(transformer.baselineImageUploadDateAndTime).toLocaleDateString()}` :
-                                'Baseline not set'
-                            }
-                            {transformer?.weather && ` • Weather: ${transformer.weather}`}
                         </div>
                     </div>
                 </div>
@@ -549,23 +493,15 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                 </div>
             )}
 
-            {/* Image View Modal */}
+            {/* Interactive Image View Modal */}
             {showImageModal && currentImageUrl && (
-                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50'>
-                    <div className='relative max-w-4xl max-h-full p-4'>
-                        <button
-                            onClick={() => setShowImageModal(false)}
-                            className='absolute top-4 right-4 p-2 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all duration-200'
-                        >
-                            <X className='w-6 h-6' />
-                        </button>
-                        <img 
-                            src={currentImageUrl} 
-                            alt="Full Size Thermal Image" 
-                            className='max-w-full max-h-full object-contain rounded-lg'
-                        />
-                    </div>
-                </div>
+                <InteractiveImageModal
+                    isOpen={showImageModal}
+                    onClose={() => setShowImageModal(false)}
+                    src={currentImageUrl}
+                    alt="Thermal Image - Full Screen"
+                    title="Thermal Image Comparison"
+                />
             )}
         </div>
     )
