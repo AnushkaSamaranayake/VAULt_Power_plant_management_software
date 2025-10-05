@@ -6,17 +6,19 @@ import Notification from '../components/Dashboard/Notification'
 import Recent from '../components/Dashboard/Recent'
 import Addition from '../components/Dashboard/Addition'
 import { branches } from '../constants';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
+import NavigationBar from '../components/NavigationBar';
 
 const Dashboard = () => {
 
-    // const navigate = useNavigate();
+    const navigate = useNavigate();
 
     const [branch, setBranch] = React.useState("");
 
     return (
         <>
-            <div className='flex flex-col min-h-screen'>
+            <NavigationBar />
+            <div className='flex flex-col min-h-screen mt-16'>
                 <div className='items-center'>
                     <h1 className='text-center mt-20 text-5xl font-bold'>Transformer <span className='text-blue-500'>Management</span> System</h1>
                 </div>
