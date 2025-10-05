@@ -21,7 +21,10 @@ The project aims to create a complete software solution for **automating thermal
 
 ---
 
-### **Phase 2: Automated Anomaly Detection** 🚧 *In Progress*  
+### **Phase 2: Automated Anomaly Detection** ✅ *Completed*  
+- Integrate YOLO for AI-Based Anomaly detection which can compare new maintenance images of the transformer with the baseline image
+- Define a detection threshold to identify anomalies in the thermal images
+- Side by side comparison of maintenance and baseline images after Anomaly detection with zoom, click & drag, and reset functionalities
 
 ### **Phase 3: Interactive Annotation & Feedback** 🚧 *In Progress*  
 
@@ -30,14 +33,15 @@ The project aims to create a complete software solution for **automating thermal
 ---
 
 ## Current Status
-Currently, the system fully supports all features from **Phase 1**, including intuitive user interfaces for efficient data management.  
-Future commits will integrate **Phases 2–4**.  
+Currently, the system fully supports all features from **Phase 1 & 2**, including intuitive user interfaces for efficient data management.  
+Future commits will integrate **Phases 3&4**.  
 
 ---
 ## Tech Stack
 
 - **Frontend:** React – Provides a responsive and interactive user interface with modern components for dashboards, modals, and tables.  
-- **Backend:** Java with Spring Framework – Handles scalable backend logic, RESTful APIs, database interactions, and user authentication.  
+- **Backend:** Java with Spring Framework – Handles scalable backend logic, RESTful APIs, database interactions, and user authentication.
+- **Vision Model:** YOLOv8 for AI-Based anomaly detection.   
 - **Database:** PostgreSQL  
 - **Target Platform:** Web browser  
 - **Other Tools & Libraries:**  
@@ -59,12 +63,21 @@ The system follows a **modular architecture** to ensure **scalability** and **ma
 - **Node.js** (v14+ for React frontend)  
 - **Java JDK** (v17+ for Spring backend)  
 - **Maven** (for building the backend)  
-- **PostgreSQL** (or MySQL) – Configure connection details in `application.properties`  
+- **PostgreSQL** (or MySQL) – Configure connection details in `application.properties`
+- **Python**(v3.8+ for YOLO API)   
 - **Git**
 
 ---
 
-### Steps
+# Steps
+
+Follow the steps given below to succesfully run the backend, vision model, and frontend. 
+
+---
+
+
+# Backend (PostgreSQL+Spring Boot)
+
 
 #### Clone the repository 💻
 ```bash
@@ -160,7 +173,31 @@ The backend will be available at:
 👉 http://localhost:8080
 
 ___
+# Vision Model (YOLOv8)
 
+## Getting Started
+Navigate to the 'yolo-api' directory.
+```bash
+
+cd VAULt_Power_plant_management_software/yolo-api
+```
+Create virtual Python environment and install required modules.
+
+```bash
+python -m venv venv
+venv/Scripts/activate
+pip install -r requirements.txt
+```
+
+Run the Yolo-API server using the following command.
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+```
+
+The server will be now running on port 5000.
+
+---
 
 # Frontend (React + Vite + Tailwind)
 
