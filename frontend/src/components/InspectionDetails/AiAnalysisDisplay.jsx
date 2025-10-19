@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings } from 'lucide-react';
 import axios from 'axios';
+import EditBoundingBoxesPopup from './EditBoundingBoxesPopup';
 
 const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [boundingBoxes, setBoundingBoxes] = useState([]);
@@ -8,6 +9,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [confidence, setConfidence] = useState(0.50);
     const [isReanalyzing, setIsReanalyzing] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showEditPopup, setShowEditPopup] = useState(false);
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
 
@@ -322,9 +324,17 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                             />
                             <span className="text-sm text-gray-700">Show Bounding Boxes</span>
                         </label>
-                        <span className="text-sm text-gray-600">
-                            {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
-                        </span>
+                        <div className="flex items-center space-x-3">
+                            <span className="text-sm text-gray-600">
+                                {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
+                            </span>
+                            <button
+                                onClick={() => setShowEditPopup(true)}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Edit Bounding Boxes
+                            </button>
+                        </div>
                     </div>
 
                     {/* Detection Details */}
@@ -361,6 +371,15 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                     <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
                     <p className="text-sm text-red-600">AI analysis failed. Please try re-uploading the image.</p>
                 </div>
+            )}
+
+            {/* Edit Bounding Boxes Popup */}
+            {showEditPopup && (
+                <EditBoundingBoxesPopup
+                    inspection={inspection}
+                    boundingBoxes={boundingBoxes}
+                    onClose={() => setShowEditPopup(false)}
+                />
             )}
         </div>
     );
