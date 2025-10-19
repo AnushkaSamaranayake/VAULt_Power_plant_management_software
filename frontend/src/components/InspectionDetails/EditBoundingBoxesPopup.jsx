@@ -4,6 +4,7 @@ import axios from 'axios';
 const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) => {
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
+    const containerRef = useRef(null);
     const [visibleBoxes, setVisibleBoxes] = useState(() => 
         boundingBoxes.map((_, idx) => idx) // Initially all boxes visible
     );
@@ -15,6 +16,16 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
     const [saveError, setSaveError] = useState(null);
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [selectedClass, setSelectedClass] = useState(null);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deleteIndex, setDeleteIndex] = useState(null);
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 3;
+    const ZOOM_STEP = 0.25;
 
     // Draw bounding boxes when component mounts or data changes
     useEffect(() => {
@@ -27,7 +38,41 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                 image.onload = drawBoundingBoxes;
             }
         }
-    }, [editedBoxes, visibleBoxes, editingBoxIndex]);
+    }, [editedBoxes, visibleBoxes, editingBoxIndex, zoomLevel, panOffset]);
+
+    const handleZoomIn = () => {
+        setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+    };
+
+    const handleZoomOut = () => {
+        setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+    };
+
+    const handleResetZoom = () => {
+        setZoomLevel(1);
+        setPanOffset({ x: 0, y: 0 });
+    };
+
+    const handleContainerMouseDown = (e) => {
+        // Only allow panning when zoomed in and not in edit mode or dragging corner
+        if (zoomLevel > 1 && !isDragging && e.target === containerRef.current) {
+            setIsPanning(true);
+            setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+        }
+    };
+
+    const handleContainerMouseMove = (e) => {
+        if (isPanning) {
+            setPanOffset({
+                x: e.clientX - panStart.x,
+                y: e.clientY - panStart.y
+            });
+        }
+    };
+
+    const handleContainerMouseUp = () => {
+        setIsPanning(false);
+    };
 
     const toggleBoxVisibility = (index) => {
         setVisibleBoxes(prev => {
@@ -45,6 +90,43 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
         } else {
             setEditingBoxIndex(index);
         }
+    };
+
+    const handleDeleteClick = (index) => {
+        setDeleteIndex(index);
+        setShowDeleteDialog(true);
+    };
+
+    const confirmDelete = () => {
+        if (deleteIndex === null) return;
+
+        // Remove the box from editedBoxes
+        setEditedBoxes(prev => prev.filter((_, idx) => idx !== deleteIndex));
+        
+        // Update visibleBoxes - remove the deleted index and adjust remaining indices
+        setVisibleBoxes(prev => {
+            const newVisible = prev
+                .filter(idx => idx !== deleteIndex)
+                .map(idx => idx > deleteIndex ? idx - 1 : idx);
+            return newVisible;
+        });
+        
+        // If the deleted box was being edited, clear edit mode
+        if (editingBoxIndex === deleteIndex) {
+            setEditingBoxIndex(null);
+        } else if (editingBoxIndex !== null && editingBoxIndex > deleteIndex) {
+            // Adjust editing index if it's after the deleted box
+            setEditingBoxIndex(editingBoxIndex - 1);
+        }
+        
+        // Close the dialog
+        setShowDeleteDialog(false);
+        setDeleteIndex(null);
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteDialog(false);
+        setDeleteIndex(null);
     };
 
     const getCornerPosition = (corner, box, scaleX, scaleY) => {
@@ -69,18 +151,18 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        const mouseX = (e.clientX - rect.left) / zoomLevel;
+        const mouseY = (e.clientY - rect.top) / zoomLevel;
 
         const image = imageRef.current;
-        const scaleX = canvas.width / image.naturalWidth;
-        const scaleY = canvas.height / image.naturalHeight;
+        const baseScaleX = image.width / image.naturalWidth;
+        const baseScaleY = image.height / image.naturalHeight;
 
         const box = editedBoxes[editingBoxIndex].box;
         const corners = ['tl', 'tr', 'bl', 'br'];
 
         for (const corner of corners) {
-            const pos = getCornerPosition(corner, box, scaleX, scaleY);
+            const pos = getCornerPosition(corner, box, baseScaleX, baseScaleY);
             if (isNearCorner(mouseX, mouseY, pos.x, pos.y)) {
                 setDraggingCorner(corner);
                 setIsDragging(true);
@@ -94,16 +176,16 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        const mouseX = (e.clientX - rect.left) / zoomLevel;
+        const mouseY = (e.clientY - rect.top) / zoomLevel;
 
         const image = imageRef.current;
-        const scaleX = canvas.width / image.naturalWidth;
-        const scaleY = canvas.height / image.naturalHeight;
+        const baseScaleX = image.width / image.naturalWidth;
+        const baseScaleY = image.height / image.naturalHeight;
 
         // Convert mouse position to image coordinates
-        const imgX = mouseX / scaleX;
-        const imgY = mouseY / scaleY;
+        const imgX = mouseX / baseScaleX;
+        const imgY = mouseY / baseScaleY;
 
         setEditedBoxes(prev => {
             const newBoxes = [...prev];
@@ -154,22 +236,25 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        // Get the displayed size of the image
-        const displayedWidth = image.width;
-        const displayedHeight = image.height;
+        // Get the base displayed size of the image (before zoom)
+        const baseWidth = image.width;
+        const baseHeight = image.height;
         const naturalWidth = image.naturalWidth;
         const naturalHeight = image.naturalHeight;
 
-        // Calculate scaling ratios
-        const scaleX = displayedWidth / naturalWidth;
-        const scaleY = displayedHeight / naturalHeight;
+        // Calculate base scaling ratios
+        const baseScaleX = baseWidth / naturalWidth;
+        const baseScaleY = baseHeight / naturalHeight;
 
-        // Set canvas size to match displayed image size
-        canvas.width = displayedWidth;
-        canvas.height = displayedHeight;
+        // Set canvas size to match zoomed image size
+        canvas.width = baseWidth * zoomLevel;
+        canvas.height = baseHeight * zoomLevel;
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Apply zoom scaling
+        ctx.scale(zoomLevel, zoomLevel);
 
         // Draw each bounding box (only if visible)
         editedBoxes.forEach((prediction, index) => {
@@ -178,11 +263,11 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
             const [x1, y1, x2, y2] = prediction.box;
             
-            // Scale coordinates to match displayed image size
-            const scaledX1 = x1 * scaleX;
-            const scaledY1 = y1 * scaleY;
-            const scaledX2 = x2 * scaleX;
-            const scaledY2 = y2 * scaleY;
+            // Scale coordinates to match base image size
+            const scaledX1 = x1 * baseScaleX;
+            const scaledY1 = y1 * baseScaleY;
+            const scaledX2 = x2 * baseScaleX;
+            const scaledY2 = y2 * baseScaleY;
             const width = scaledX2 - scaledX1;
             const height = scaledY2 - scaledY1;
 
@@ -204,13 +289,14 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
             // Draw rectangle
             ctx.strokeStyle = color;
-            ctx.lineWidth = index === editingBoxIndex ? 4 : 3;
+            ctx.lineWidth = (index === editingBoxIndex ? 4 : 3) / zoomLevel;
             ctx.strokeRect(scaledX1, scaledY1, width, height);
 
-            // Draw error number badge in top-left corner (same as AiAnalysisDisplay)
+            // Draw error number badge in top-left corner
             const errorNumber = `${index + 1}`;
-            ctx.font = 'bold 14px Arial';
-            const badgeSize = 24;
+            const fontSize = 14 / zoomLevel;
+            ctx.font = `bold ${fontSize}px Arial`;
+            const badgeSize = 24 / zoomLevel;
             
             // Draw circular badge background
             ctx.fillStyle = color;
@@ -230,7 +316,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
             // Draw corner handles if in edit mode
             if (index === editingBoxIndex) {
-                const cornerRadius = 6;
+                const cornerRadius = 6 / zoomLevel;
                 const corners = [
                     { x: scaledX1, y: scaledY1 }, // top-left
                     { x: scaledX2, y: scaledY1 }, // top-right
@@ -242,7 +328,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                     // Outer circle (white border)
                     ctx.fillStyle = '#ffffff';
                     ctx.beginPath();
-                    ctx.arc(corner.x, corner.y, cornerRadius + 1, 0, 2 * Math.PI);
+                    ctx.arc(corner.x, corner.y, cornerRadius + 1/zoomLevel, 0, 2 * Math.PI);
                     ctx.fill();
 
                     // Inner circle (gray)
@@ -253,6 +339,9 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                 });
             }
         });
+
+        // Reset transform
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
     };
 
     const handleSave = async () => {
@@ -369,26 +458,83 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
                     {/* Image Section with Canvas Overlay */}
                     <div className="border rounded-lg p-4 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700 mb-4">AI Analysis Image</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-700">AI Analysis Image</h3>
+                            {/* Zoom Controls */}
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={handleZoomOut}
+                                    disabled={zoomLevel <= MIN_ZOOM}
+                                    className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="Zoom Out"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                                    </svg>
+                                </button>
+                                <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">
+                                    {Math.round(zoomLevel * 100)}%
+                                </span>
+                                <button
+                                    onClick={handleZoomIn}
+                                    disabled={zoomLevel >= MAX_ZOOM}
+                                    className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="Zoom In"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={handleResetZoom}
+                                    disabled={zoomLevel === 1 && panOffset.x === 0 && panOffset.y === 0}
+                                    className="px-3 py-2 bg-white border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="Reset Zoom"
+                                >
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
                         {editingBoxIndex !== null && (
                             <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
                                 ✏️ Editing mode active for Error {editingBoxIndex + 1}. Drag the corner handles to resize the box.
                             </div>
                         )}
-                        <div className="bg-gray-100 border rounded-lg flex items-center justify-center p-4 overflow-hidden">
-                            <div className="relative inline-block max-w-full">
+                        <div 
+                            ref={containerRef}
+                            className="bg-gray-100 border rounded-lg flex items-center justify-center p-4 overflow-auto max-h-[500px]"
+                            style={{ cursor: isPanning ? 'grabbing' : (zoomLevel > 1 ? 'grab' : 'default') }}
+                            onMouseDown={handleContainerMouseDown}
+                            onMouseMove={handleContainerMouseMove}
+                            onMouseUp={handleContainerMouseUp}
+                            onMouseLeave={handleContainerMouseUp}
+                        >
+                            <div 
+                                className="relative inline-block"
+                                style={{
+                                    transform: `translate(${panOffset.x}px, ${panOffset.y}px)`
+                                }}
+                            >
                                 <img
                                     ref={imageRef}
                                     src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
                                     alt="Thermal Analysis - Edit Mode"
-                                    className="max-w-full h-auto block"
+                                    className="block"
+                                    style={{
+                                        transform: `scale(${zoomLevel})`,
+                                        transformOrigin: 'top left',
+                                        maxWidth: 'none'
+                                    }}
                                     crossOrigin="anonymous"
                                     onLoad={drawBoundingBoxes}
                                 />
                                 <canvas
                                     ref={canvasRef}
                                     className="absolute top-0 left-0"
-                                    style={{ cursor: editingBoxIndex !== null ? 'crosshair' : 'default' }}
+                                    style={{ 
+                                        cursor: editingBoxIndex !== null ? 'crosshair' : 'inherit',
+                                        pointerEvents: editingBoxIndex !== null ? 'auto' : 'none'
+                                    }}
                                     onMouseDown={handleCanvasMouseDown}
                                     onMouseMove={handleCanvasMouseMove}
                                     onMouseUp={handleCanvasMouseUp}
@@ -398,8 +544,10 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                         </div>
                         <p className="text-sm text-gray-500 mt-2">
                             {editingBoxIndex !== null 
-                                ? 'Drag the gray corner handles to resize the bounding box'
-                                : 'Click "Edit" on an error to enable drag-to-resize mode'
+                                ? 'Drag the gray corner handles to resize the bounding box. Use zoom controls for precision.'
+                                : zoomLevel > 1 
+                                    ? 'Click and drag to pan the image. Click "Edit" on an error to enable drag-to-resize mode.'
+                                    : 'Use zoom controls to zoom in. Click "Edit" on an error to enable drag-to-resize mode.'
                             }
                         </p>
                     </div>
@@ -469,7 +617,10 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                                             >
                                                 {isEditing ? '✓ Done' : 'Edit'}
                                             </button>
-                                            <button className="px-3 py-1 bg-red-100 border border-red-300 text-red-700 text-sm rounded hover:bg-red-200">
+                                            <button 
+                                                onClick={() => handleDeleteClick(idx)}
+                                                className="px-3 py-1 bg-red-100 border border-red-300 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                                            >
                                                 Delete
                                             </button>
                                         </div>
@@ -585,6 +736,46 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Add Box
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {showDeleteDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+                        <div className="flex items-center mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800">Delete Bounding Box</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Are you sure you want to delete Error {deleteIndex !== null ? deleteIndex + 1 : ''}?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 mb-6">
+                            This action cannot be undone. The bounding box will be permanently removed when you save changes.
+                        </p>
+
+                        <div className="flex items-center justify-end space-x-3">
+                            <button
+                                onClick={cancelDelete}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Delete
                             </button>
                         </div>
                     </div>
