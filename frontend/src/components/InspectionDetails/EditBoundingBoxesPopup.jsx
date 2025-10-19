@@ -13,6 +13,8 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
     const [isDragging, setIsDragging] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [showAddDialog, setShowAddDialog] = useState(false);
+    const [selectedClass, setSelectedClass] = useState(null);
 
     // Draw bounding boxes when component mounts or data changes
     useEffect(() => {
@@ -291,6 +293,56 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
         }
     };
 
+    const handleAddNewBox = () => {
+        setShowAddDialog(true);
+        setSelectedClass(null);
+    };
+
+    const confirmAddBox = () => {
+        if (selectedClass === null) {
+            alert('Please select a classification');
+            return;
+        }
+
+        const image = imageRef.current;
+        if (!image) return;
+
+        // Create a new box in the center of the image with default size
+        const centerX = image.naturalWidth / 2;
+        const centerY = image.naturalHeight / 2;
+        const defaultWidth = 100;
+        const defaultHeight = 100;
+
+        const newBox = {
+            box: [
+                centerX - defaultWidth / 2,
+                centerY - defaultHeight / 2,
+                centerX + defaultWidth / 2,
+                centerY + defaultHeight / 2
+            ],
+            class: selectedClass,
+            confidence: 1.0 // Default confidence for manually added boxes
+        };
+
+        // Add the new box to editedBoxes
+        setEditedBoxes(prev => [...prev, newBox]);
+        
+        // Make it visible
+        setVisibleBoxes(prev => [...prev, editedBoxes.length]);
+        
+        // Automatically enter edit mode for the new box
+        setEditingBoxIndex(editedBoxes.length);
+        
+        // Close the dialog
+        setShowAddDialog(false);
+        setSelectedClass(null);
+    };
+
+    const cancelAddBox = () => {
+        setShowAddDialog(false);
+        setSelectedClass(null);
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto relative z-50">
@@ -354,9 +406,18 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
                     {/* Detection Details Section */}
                     <div className="border rounded-lg p-4 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700 mb-4">
-                            Detected Anomalies ({editedBoxes.length})
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-700">
+                                Detected Anomalies ({editedBoxes.length})
+                            </h3>
+                            <button
+                                onClick={handleAddNewBox}
+                                className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                                <span className="text-lg font-bold">+</span>
+                                <span>Add New Box</span>
+                            </button>
+                        </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                             {editedBoxes.map((pred, idx) => {
                                 const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
@@ -447,6 +508,88 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                     </div>
                 </div>
             </div>
+
+            {/* Add New Box Dialog */}
+            {showAddDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Bounding Box</h3>
+                        <p className="text-sm text-gray-600 mb-4">Select the classification for the new bounding box:</p>
+                        
+                        <div className="space-y-3 mb-6">
+                            {/* Faulty Option */}
+                            <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                selectedClass === 0 ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
+                            }`}>
+                                <input
+                                    type="radio"
+                                    name="classification"
+                                    value="0"
+                                    checked={selectedClass === 0}
+                                    onChange={() => setSelectedClass(0)}
+                                    className="w-4 h-4 text-red-600 cursor-pointer"
+                                />
+                                <span className="ml-3 flex items-center">
+                                    <span className="w-4 h-4 bg-red-600 rounded-full mr-2"></span>
+                                    <span className="font-medium text-gray-700">Faulty</span>
+                                </span>
+                            </label>
+
+                            {/* Potentially Faulty Option */}
+                            <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                selectedClass === 2 ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-orange-300'
+                            }`}>
+                                <input
+                                    type="radio"
+                                    name="classification"
+                                    value="2"
+                                    checked={selectedClass === 2}
+                                    onChange={() => setSelectedClass(2)}
+                                    className="w-4 h-4 text-orange-600 cursor-pointer"
+                                />
+                                <span className="ml-3 flex items-center">
+                                    <span className="w-4 h-4 bg-orange-600 rounded-full mr-2"></span>
+                                    <span className="font-medium text-gray-700">Potentially Faulty</span>
+                                </span>
+                            </label>
+
+                            {/* Normal Option */}
+                            <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                selectedClass === 1 ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+                            }`}>
+                                <input
+                                    type="radio"
+                                    name="classification"
+                                    value="1"
+                                    checked={selectedClass === 1}
+                                    onChange={() => setSelectedClass(1)}
+                                    className="w-4 h-4 text-green-600 cursor-pointer"
+                                />
+                                <span className="ml-3 flex items-center">
+                                    <span className="w-4 h-4 bg-green-600 rounded-full mr-2"></span>
+                                    <span className="font-medium text-gray-700">Normal</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center justify-end space-x-3">
+                            <button
+                                onClick={cancelAddBox}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmAddBox}
+                                disabled={selectedClass === null}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Add Box
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
