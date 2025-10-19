@@ -6,10 +6,14 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
     const [visibleBoxes, setVisibleBoxes] = useState(() => 
         boundingBoxes.map((_, idx) => idx) // Initially all boxes visible
     );
+    const [editingBoxIndex, setEditingBoxIndex] = useState(null);
+    const [editedBoxes, setEditedBoxes] = useState(boundingBoxes);
+    const [draggingCorner, setDraggingCorner] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Draw bounding boxes when component mounts or data changes
     useEffect(() => {
-        if (boundingBoxes.length > 0 && imageRef.current && canvasRef.current) {
+        if (editedBoxes.length > 0 && imageRef.current && canvasRef.current) {
             const image = imageRef.current;
             
             if (image.complete) {
@@ -18,7 +22,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                 image.onload = drawBoundingBoxes;
             }
         }
-    }, [boundingBoxes, visibleBoxes]);
+    }, [editedBoxes, visibleBoxes, editingBoxIndex]);
 
     const toggleBoxVisibility = (index) => {
         setVisibleBoxes(prev => {
@@ -28,6 +32,116 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                 return [...prev, index];
             }
         });
+    };
+
+    const toggleEditMode = (index) => {
+        if (editingBoxIndex === index) {
+            setEditingBoxIndex(null);
+        } else {
+            setEditingBoxIndex(index);
+        }
+    };
+
+    const getCornerPosition = (corner, box, scaleX, scaleY) => {
+        const [x1, y1, x2, y2] = box;
+        switch (corner) {
+            case 'tl': return { x: x1 * scaleX, y: y1 * scaleY };
+            case 'tr': return { x: x2 * scaleX, y: y1 * scaleY };
+            case 'bl': return { x: x1 * scaleX, y: y2 * scaleY };
+            case 'br': return { x: x2 * scaleX, y: y2 * scaleY };
+            default: return { x: 0, y: 0 };
+        }
+    };
+
+    const isNearCorner = (mouseX, mouseY, cornerX, cornerY, threshold = 10) => {
+        const dx = mouseX - cornerX;
+        const dy = mouseY - cornerY;
+        return Math.sqrt(dx * dx + dy * dy) < threshold;
+    };
+
+    const handleCanvasMouseDown = (e) => {
+        if (editingBoxIndex === null) return;
+
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const image = imageRef.current;
+        const scaleX = canvas.width / image.naturalWidth;
+        const scaleY = canvas.height / image.naturalHeight;
+
+        const box = editedBoxes[editingBoxIndex].box;
+        const corners = ['tl', 'tr', 'bl', 'br'];
+
+        for (const corner of corners) {
+            const pos = getCornerPosition(corner, box, scaleX, scaleY);
+            if (isNearCorner(mouseX, mouseY, pos.x, pos.y)) {
+                setDraggingCorner(corner);
+                setIsDragging(true);
+                return;
+            }
+        }
+    };
+
+    const handleCanvasMouseMove = (e) => {
+        if (!isDragging || draggingCorner === null || editingBoxIndex === null) return;
+
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const image = imageRef.current;
+        const scaleX = canvas.width / image.naturalWidth;
+        const scaleY = canvas.height / image.naturalHeight;
+
+        // Convert mouse position to image coordinates
+        const imgX = mouseX / scaleX;
+        const imgY = mouseY / scaleY;
+
+        setEditedBoxes(prev => {
+            const newBoxes = [...prev];
+            const [x1, y1, x2, y2] = newBoxes[editingBoxIndex].box;
+
+            let newBox;
+            switch (draggingCorner) {
+                case 'tl':
+                    newBox = [imgX, imgY, x2, y2];
+                    break;
+                case 'tr':
+                    newBox = [x1, imgY, imgX, y2];
+                    break;
+                case 'bl':
+                    newBox = [imgX, y1, x2, imgY];
+                    break;
+                case 'br':
+                    newBox = [x1, y1, imgX, imgY];
+                    break;
+                default:
+                    newBox = [x1, y1, x2, y2];
+            }
+
+            // Ensure coordinates are in correct order (x1 < x2, y1 < y2)
+            const normalizedBox = [
+                Math.min(newBox[0], newBox[2]),
+                Math.min(newBox[1], newBox[3]),
+                Math.max(newBox[0], newBox[2]),
+                Math.max(newBox[1], newBox[3])
+            ];
+
+            newBoxes[editingBoxIndex] = {
+                ...newBoxes[editingBoxIndex],
+                box: normalizedBox
+            };
+
+            return newBoxes;
+        });
+    };
+
+    const handleCanvasMouseUp = () => {
+        setIsDragging(false);
+        setDraggingCorner(null);
     };
 
     const drawBoundingBoxes = () => {
@@ -53,7 +167,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Draw each bounding box (only if visible)
-        boundingBoxes.forEach((prediction, index) => {
+        editedBoxes.forEach((prediction, index) => {
             // Skip if this box is not visible
             if (!visibleBoxes.includes(index)) return;
 
@@ -89,7 +203,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
 
             // Draw rectangle
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = index === editingBoxIndex ? 4 : 3;
             ctx.strokeRect(scaledX1, scaledY1, width, height);
 
             // Draw label background
@@ -104,6 +218,31 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
             // Draw label text
             ctx.fillStyle = '#ffffff';
             ctx.fillText(labelText, scaledX1 + 4, scaledY1 - 6);
+
+            // Draw corner handles if in edit mode
+            if (index === editingBoxIndex) {
+                const cornerRadius = 6;
+                const corners = [
+                    { x: scaledX1, y: scaledY1 }, // top-left
+                    { x: scaledX2, y: scaledY1 }, // top-right
+                    { x: scaledX1, y: scaledY2 }, // bottom-left
+                    { x: scaledX2, y: scaledY2 }  // bottom-right
+                ];
+
+                corners.forEach(corner => {
+                    // Outer circle (white border)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(corner.x, corner.y, cornerRadius + 1, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Inner circle (gray)
+                    ctx.fillStyle = '#6b7280';
+                    ctx.beginPath();
+                    ctx.arc(corner.x, corner.y, cornerRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
         });
     };
 
@@ -126,6 +265,11 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                     {/* Image Section with Canvas Overlay */}
                     <div className="border rounded-lg p-4 bg-gray-50">
                         <h3 className="font-semibold text-gray-700 mb-4">AI Analysis Image</h3>
+                        {editingBoxIndex !== null && (
+                            <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                                ✏️ Editing mode active for Anomaly {editingBoxIndex + 1}. Drag the corner handles to resize the box.
+                            </div>
+                        )}
                         <div className="bg-gray-100 border rounded-lg flex items-center justify-center p-4 overflow-hidden">
                             <div className="relative inline-block max-w-full">
                                 <img
@@ -138,29 +282,38 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                                 />
                                 <canvas
                                     ref={canvasRef}
-                                    className="absolute top-0 left-0 pointer-events-none"
+                                    className="absolute top-0 left-0"
+                                    style={{ cursor: editingBoxIndex !== null ? 'crosshair' : 'default' }}
+                                    onMouseDown={handleCanvasMouseDown}
+                                    onMouseMove={handleCanvasMouseMove}
+                                    onMouseUp={handleCanvasMouseUp}
+                                    onMouseLeave={handleCanvasMouseUp}
                                 />
                             </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-2">
-                            Click and drag on the image to create or modify bounding boxes
+                            {editingBoxIndex !== null 
+                                ? 'Drag the gray corner handles to resize the bounding box'
+                                : 'Click "Edit" on an anomaly to enable drag-to-resize mode'
+                            }
                         </p>
                     </div>
 
                     {/* Detection Details Section */}
                     <div className="border rounded-lg p-4 bg-gray-50">
                         <h3 className="font-semibold text-gray-700 mb-4">
-                            Detected Anomalies ({boundingBoxes.length})
+                            Detected Anomalies ({editedBoxes.length})
                         </h3>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {boundingBoxes.map((pred, idx) => {
+                            {editedBoxes.map((pred, idx) => {
                                 const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                                 const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
                                 const bgClass = pred.class === 0 ? 'bg-red-50' : pred.class === 1 ? 'bg-green-50' : 'bg-orange-50';
                                 const isVisible = visibleBoxes.includes(idx);
+                                const isEditing = editingBoxIndex === idx;
                                 
                                 return (
-                                    <div key={idx} className={`flex items-center justify-between p-3 ${bgClass} rounded-lg border ${!isVisible ? 'opacity-50' : ''}`}>
+                                    <div key={idx} className={`flex items-center justify-between p-3 ${bgClass} rounded-lg border ${!isVisible ? 'opacity-50' : ''} ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
                                         <div className="flex items-center space-x-3 flex-1">
                                             {/* Visibility Checkbox */}
                                             <label className="flex items-center cursor-pointer">
@@ -175,6 +328,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                                             <div className="flex-1">
                                                 <span className={`font-medium ${colorClass}`}>
                                                     Anomaly {idx + 1}: {className}
+                                                    {isEditing && <span className="ml-2 text-xs text-blue-600">(Editing)</span>}
                                                 </span>
                                                 <p className="text-xs text-gray-600 mt-1">
                                                     Confidence: {(pred.confidence * 100).toFixed(1)}%
@@ -185,8 +339,15 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                                             </div>
                                         </div>
                                         <div className="flex space-x-2">
-                                            <button className="px-3 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50">
-                                                Edit
+                                            <button 
+                                                onClick={() => toggleEditMode(idx)}
+                                                className={`px-3 py-1 border text-sm rounded transition-colors ${
+                                                    isEditing 
+                                                        ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' 
+                                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {isEditing ? '✓ Done' : 'Edit'}
                                             </button>
                                             <button className="px-3 py-1 bg-red-100 border border-red-300 text-red-700 text-sm rounded hover:bg-red-200">
                                                 Delete
