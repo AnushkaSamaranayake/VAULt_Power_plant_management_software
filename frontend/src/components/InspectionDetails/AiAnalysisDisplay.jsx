@@ -209,12 +209,17 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         }
     };
 
+    const handleSaveCallback = async () => {
+        // Refresh inspection data to get updated bounding boxes
+        await onRefresh();
+    };
+
     if (!inspection?.maintenanceImagePath) {
         return null;
     }
 
     return (
-        <div className="mt-6 space-y-4">
+        <div className="ai-analysis-section mt-6 space-y-4">
             <style>{`
                 .confidence-slider::-webkit-slider-thumb {
                     appearance: none;
@@ -435,6 +440,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                     inspection={inspection}
                     boundingBoxes={boundingBoxes}
                     onClose={() => setShowEditPopup(false)}
+                    onSave={handleSaveCallback}
                 />
             )}
         </div>
