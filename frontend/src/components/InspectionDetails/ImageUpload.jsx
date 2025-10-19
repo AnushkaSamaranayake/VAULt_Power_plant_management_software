@@ -518,7 +518,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                     onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
                                     style={{ maxHeight: '400px' }}
                                 />
-                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center pointer-events-none'>
                                     <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
                                 </div>
                             </div>
@@ -720,18 +720,20 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
 
             {/* Image View Modal */}
             {showImageModal && currentImageUrl && (
-                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50'>
-                    <div className='relative max-w-4xl max-h-full p-4'>
+                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-75' style={{ zIndex: 10000 }}>
+                    <div className='relative max-w-7xl max-h-[90vh] p-8'>
                         <button
                             onClick={() => setShowImageModal(false)}
-                            className='absolute top-4 right-4 p-2 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all duration-200'
+                            className='absolute -top-2 -right-2 p-3 bg-white rounded-full hover:bg-gray-100 transition-all duration-200 shadow-lg z-10'
+                            title="Close"
                         >
-                            <X className='w-6 h-6' />
+                            <X className='w-6 h-6 text-gray-800' />
                         </button>
                         <img 
                             src={currentImageUrl} 
                             alt="Full Size Thermal Image" 
-                            className='max-w-full max-h-full object-contain rounded-lg'
+                            className='max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl'
+                            crossOrigin="anonymous"
                         />
                     </div>
                 </div>
