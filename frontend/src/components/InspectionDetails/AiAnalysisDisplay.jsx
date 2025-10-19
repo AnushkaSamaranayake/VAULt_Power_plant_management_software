@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings } from 'lucide-react';
+import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 import EditBoundingBoxesPopup from './EditBoundingBoxesPopup';
 
@@ -10,8 +10,17 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
     const [isReanalyzing, setIsReanalyzing] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showEditPopup, setShowEditPopup] = useState(false);
+    const [expandedErrors, setExpandedErrors] = useState([]);
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
+
+    const toggleErrorExpansion = (index) => {
+        setExpandedErrors(prev => 
+            prev.includes(index) 
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        );
+    };
 
     // Parse bounding boxes when inspection data changes
     useEffect(() => {
@@ -349,18 +358,76 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                             const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                             const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
                             const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
+                            const isExpanded = expandedErrors.includes(idx);
                             
                             return (
-                                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
-                                            Error {idx + 1}
-                                        </span>
-                                        <span className={`font-medium ${colorClass}`}>{className}</span>
+                                <div key={idx} className="bg-gray-50 rounded border border-gray-200 overflow-hidden">
+                                    {/* Main Error Row */}
+                                    <div 
+                                        className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                                        onClick={() => toggleErrorExpansion(idx)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                Error {idx + 1}
+                                            </span>
+                                            <span className={`font-medium ${colorClass} text-sm`}>{className}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-600 text-sm">
+                                                Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                            </span>
+                                            {isExpanded ? (
+                                                <ChevronUp className="w-4 h-4 text-gray-500" />
+                                            ) : (
+                                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className="text-gray-600">
-                                        Confidence: {(pred.confidence * 100).toFixed(1)}%
-                                    </span>
+                                    
+                                    {/* Expanded Change Log */}
+                                    {isExpanded && (
+                                        <div className="border-t border-gray-200 bg-white p-3">
+                                            <h4 className="text-xs font-semibold text-gray-700 mb-2">Change Log (Latest First):</h4>
+                                            <div className="space-y-2">
+                                                {/* Placeholder for future entries - these will appear above */}
+                                                {/* Future modifications will be inserted here at the top */}
+                                                
+                                                {/* AI Detection Entry - Original detection */}
+                                                <div className="flex items-start gap-2 text-xs">
+                                                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-medium text-gray-700">
+                                                                Detected by AI
+                                                            </span>
+                                                            <span className="text-gray-500">
+                                                                {new Date(inspection.dateOfInspection).toLocaleDateString('en-US', { 
+                                                                    year: 'numeric', 
+                                                                    month: 'short', 
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-gray-600 mt-1">
+                                                            AI analysis identified this as <span className={colorClass}>{className}</span> with {(pred.confidence * 100).toFixed(1)}% confidence
+                                                        </p>
+                                                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                            <p className="font-medium text-gray-700 mb-1">Bounding Box Coordinates:</p>
+                                                            <p className="text-gray-600">
+                                                                X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                            </p>
+                                                            <p className="text-gray-500 mt-1">
+                                                                Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
