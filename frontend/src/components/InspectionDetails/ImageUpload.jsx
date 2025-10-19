@@ -302,7 +302,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     };
 
     return (
-        <div className='flex flex-row items-start justify-between space-x-6'>
+        <div className='flex flex-row items-stretch justify-between space-x-6'>
             {/* Upload Section */}
             <div className='flex flex-col bg-white w-1/4 shadow-md rounded-md p-6'>
                 <div className='flex flex-row items-center justify-between mb-6'>
@@ -436,11 +436,11 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                         ref={imageRef}
                                         src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
                                         alt="Current Inspection Image" 
-                                        className='max-w-full h-auto max-h-80 object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
+                                        className='max-w-full h-auto object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
                                         onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
                                         onLoad={drawBoundingBoxes}
                                         crossOrigin="anonymous"
-                                        style={{ display: 'block' }}
+                                        style={{ display: 'block', maxHeight: '400px' }}
                                     />
                                     {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
                                         <canvas
@@ -461,7 +461,8 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                             </div>
                         ) : (
                             <div 
-                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                className='w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
+                                style={{ height: '400px' }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
@@ -513,8 +514,9 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                 <img 
                                     src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
                                     alt="Baseline Reference Image" 
-                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
+                                    className='w-full h-auto object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
                                     onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                                    style={{ maxHeight: '400px' }}
                                 />
                                 <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
                                     <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
@@ -522,7 +524,8 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                             </div>
                         ) : (
                             <div 
-                                className='w-full h-80 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
+                                className='w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
+                                style={{ height: '400px' }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     e.currentTarget.classList.add('border-orange-500', 'bg-orange-50');
