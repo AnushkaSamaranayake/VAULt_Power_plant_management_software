@@ -1,11 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
+    // Prevent body scroll when popup is open
+    useEffect(() => {
+        const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.body.style.overflow = 'hidden';
+        document.body.style.paddingRight = `${scrollBarWidth}px`;
+        
+        return () => {
+            document.body.style.overflow = 'unset';
+            document.body.style.paddingRight = '0px';
+        };
+    }, []);
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10000, top: 0, left: 0, right: 0, bottom: 0 }}>
             <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between" style={{ zIndex: 10001 }}>
                     <h2 className="text-xl font-semibold text-gray-800">Edit Bounding Boxes</h2>
                     <button
                         onClick={onClose}

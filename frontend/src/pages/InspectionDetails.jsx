@@ -2,6 +2,7 @@ import React from 'react'
 import axios from 'axios'
 import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import NavigationBar from '../components/NavigationBar'
 import Head from '../components/InspectionDetails/Head'
 import ImageUpload from '../components/InspectionDetails/ImageUpload'
 import AiAnalysisDisplay from '../components/InspectionDetails/AiAnalysisDisplay'
@@ -61,7 +62,8 @@ const InspectionDetails = () => {
 
     return (
         <>  
-            <div className='flex flex-col m-10 min-h-screen'>
+            <NavigationBar />
+            <div className='flex flex-col m-10 min-h-screen' style={{ marginTop: '80px' }}>
                 <div>
                     <h1 className='text-3xl font-bold text-blue-900 mb-10'>Inspection</h1>
                 </div>
