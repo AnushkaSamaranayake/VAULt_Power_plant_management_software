@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
+import axios from 'axios';
 
-const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
+const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) => {
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
     const [visibleBoxes, setVisibleBoxes] = useState(() => 
@@ -10,6 +11,8 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
     const [editedBoxes, setEditedBoxes] = useState(boundingBoxes);
     const [draggingCorner, setDraggingCorner] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     // Draw bounding boxes when component mounts or data changes
     useEffect(() => {
@@ -246,6 +249,44 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
         });
     };
 
+    const handleSave = async () => {
+        setIsSaving(true);
+        setSaveError(null);
+
+        try {
+            // Prepare the data structure to match backend format
+            const updatedBoundingBoxes = {
+                predictions: editedBoxes
+            };
+
+            // Send PUT request to update bounding boxes
+            const response = await axios.put(
+                `http://localhost:8080/api/inspections/${inspection.inspectionNo}/bounding-boxes`,
+                updatedBoundingBoxes,
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            console.log('Bounding boxes saved successfully:', response.data);
+            
+            // Call the onSave callback to refresh inspection data
+            if (onSave) {
+                await onSave();
+            }
+            
+            // Close the modal
+            onClose();
+        } catch (error) {
+            console.error('Failed to save bounding boxes:', error);
+            setSaveError(error.response?.data?.message || 'Failed to save changes. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto relative z-50">
@@ -255,6 +296,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                     <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                        disabled={isSaving}
                     >
                         ×
                     </button>
@@ -262,6 +304,13 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
 
                 {/* Content */}
                 <div className="p-6 space-y-6">
+                    {/* Error Message */}
+                    {saveError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            ❌ {saveError}
+                        </div>
+                    )}
+
                     {/* Image Section with Canvas Overlay */}
                     <div className="border rounded-lg p-4 bg-gray-50">
                         <h3 className="font-semibold text-gray-700 mb-4">AI Analysis Image</h3>
@@ -363,14 +412,27 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
                     <div className="flex items-center justify-end space-x-3 pt-4 border-t">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isSaving}
                         >
                             Cancel
                         </button>
                         <button
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
-                            Save Changes
+                            {isSaving ? (
+                                <>
+                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    <span>Saving...</span>
+                                </>
+                            ) : (
+                                <span>Save Changes</span>
+                            )}
                         </button>
                     </div>
                 </div>
