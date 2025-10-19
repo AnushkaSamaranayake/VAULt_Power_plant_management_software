@@ -35,18 +35,24 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose }) => {
 
                     {/* Detection Details Section */}
                     <div className="border rounded-lg p-4 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700 mb-4">Detected Anomalies</h3>
+                        <h3 className="font-semibold text-gray-700 mb-4">Detected Errors</h3>
                         <div className="space-y-2">
                             {boundingBoxes.map((pred, idx) => {
                                 const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                                 const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
                                 const bgClass = pred.class === 0 ? 'bg-red-50' : pred.class === 1 ? 'bg-green-50' : 'bg-orange-50';
+                                const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
                                 
                                 return (
                                     <div key={idx} className={`flex items-center justify-between p-3 ${bgClass} rounded-lg border`}>
                                         <div>
-                                            <span className={`font-medium ${colorClass}`}>Anomaly {idx + 1}: {className}</span>
-                                            <p className="text-xs text-gray-600 mt-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                    Error {idx + 1}
+                                                </span>
+                                                <span className={`font-medium ${colorClass}`}>{className}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-600">
                                                 Confidence: {(pred.confidence * 100).toFixed(1)}%
                                             </p>
                                         </div>

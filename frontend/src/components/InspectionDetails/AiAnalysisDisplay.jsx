@@ -79,7 +79,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         if (!showBoxes) return;
 
         // Draw each bounding box
-        boundingBoxes.forEach((prediction) => {
+        boundingBoxes.forEach((prediction, index) => {
             const [x1, y1, x2, y2] = prediction.box;
             
             // Scale coordinates to match displayed image size
@@ -91,23 +91,19 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             const height = scaledY2 - scaledY1;
 
             // Color based on class
-            let color, label;
+            let color;
             switch (prediction.class) {
                 case 0:
                     color = '#ef4444'; // Red - Faulty
-                    label = 'Faulty';
                     break;
                 case 1:
                     color = '#10b981'; // Green - Normal
-                    label = 'Normal';
                     break;
                 case 2:
                     color = '#f59e0b'; // Orange - Potentially Faulty
-                    label = 'Potentially Faulty';
                     break;
                 default:
                     color = '#6b7280'; // Gray
-                    label = 'Unknown';
             }
 
             // Draw rectangle
@@ -115,18 +111,27 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             ctx.lineWidth = 3;
             ctx.strokeRect(scaledX1, scaledY1, width, height);
 
-            // Draw label background
-            const labelText = `${label} (${(prediction.confidence * 100).toFixed(1)}%)`;
-            ctx.font = 'bold 16px Arial';
-            const textMetrics = ctx.measureText(labelText);
-            const textHeight = 20;
+            // Draw error number badge in top-left corner
+            const errorNumber = `${index + 1}`;
+            ctx.font = 'bold 14px Arial';
+            const textMetrics = ctx.measureText(errorNumber);
+            const badgeSize = 24;
             
+            // Draw circular badge background
             ctx.fillStyle = color;
-            ctx.fillRect(scaledX1, scaledY1 - textHeight - 4, textMetrics.width + 8, textHeight + 4);
+            ctx.beginPath();
+            ctx.arc(scaledX1 + badgeSize/2, scaledY1 + badgeSize/2, badgeSize/2, 0, 2 * Math.PI);
+            ctx.fill();
 
-            // Draw label text
+            // Draw error number
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(labelText, scaledX1 + 4, scaledY1 - 6);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(errorNumber, scaledX1 + badgeSize/2, scaledY1 + badgeSize/2);
+            
+            // Reset text alignment
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
         });
     };
 
@@ -343,10 +348,16 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                         {boundingBoxes.map((pred, idx) => {
                             const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                             const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
+                            const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
                             
                             return (
                                 <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                                    <span className={`font-medium ${colorClass}`}>{className}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                            Error {idx + 1}
+                                        </span>
+                                        <span className={`font-medium ${colorClass}`}>{className}</span>
+                                    </div>
                                     <span className="text-gray-600">
                                         Confidence: {(pred.confidence * 100).toFixed(1)}%
                                     </span>
