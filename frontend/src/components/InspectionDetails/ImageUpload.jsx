@@ -304,7 +304,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     return (
         <div className='flex flex-row items-start justify-between space-x-6'>
             {/* Upload Section */}
-            <div className='flex flex-col bg-white w-1/3 shadow-md rounded-md p-6'>
+            <div className='flex flex-col bg-white w-1/4 shadow-md rounded-md p-6'>
                 <div className='flex flex-row items-center justify-between mb-6'>
                     <h1 className='font-semibold text-md'>Maintenance Image Upload</h1>
                     <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
@@ -401,7 +401,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             </div>
 
             {/* Image Display Section - Side by Side Comparison */}
-            <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
+            <div className='flex flex-col bg-white w-3/4 shadow-md rounded-md p-6'>
                 <div className='flex flex-row items-center justify-between mb-6'>
                     <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
                     <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
