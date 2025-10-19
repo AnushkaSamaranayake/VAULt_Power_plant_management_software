@@ -76,6 +76,23 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             } else {
                 image.onload = drawBoundingBoxes;
             }
+
+            // Add resize observer to handle zoom and window resize
+            const resizeObserver = new ResizeObserver(() => {
+                drawBoundingBoxes();
+            });
+            resizeObserver.observe(image);
+
+            // Also listen to window resize for zoom changes
+            const handleResize = () => {
+                drawBoundingBoxes();
+            };
+            window.addEventListener('resize', handleResize);
+
+            return () => {
+                resizeObserver.disconnect();
+                window.removeEventListener('resize', handleResize);
+            };
         }
     }, [showBoxes, boundingBoxes]);
 
@@ -86,12 +103,13 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
         
         const ctx = canvas.getContext('2d');
 
-        // Get the actual displayed dimensions of the image
-        const rect = image.getBoundingClientRect();
-        const displayedWidth = image.offsetWidth;
-        const displayedHeight = image.offsetHeight;
+        // Get the actual rendered dimensions of the image element
+        const displayedWidth = image.clientWidth;
+        const displayedHeight = image.clientHeight;
         const naturalWidth = image.naturalWidth;
         const naturalHeight = image.naturalHeight;
+
+        if (!displayedWidth || !displayedHeight || !naturalWidth || !naturalHeight) return;
 
         // Calculate scaling ratios
         const scaleX = displayedWidth / naturalWidth;
@@ -100,10 +118,6 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
         // Set canvas size to match displayed image size exactly
         canvas.width = displayedWidth;
         canvas.height = displayedHeight;
-        
-        // Position canvas to match image position
-        canvas.style.width = displayedWidth + 'px';
-        canvas.style.height = displayedHeight + 'px';
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -430,31 +444,26 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                             )}
                         </div>
                         {inspection?.maintenanceImagePath ? (
-                            <div className='relative group rounded-lg border shadow-sm overflow-hidden' style={{ display: 'inline-block', width: '100%' }}>
-                                <div className='relative' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <img 
-                                        ref={imageRef}
-                                        src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
-                                        alt="Current Inspection Image" 
-                                        className='max-w-full h-auto object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
-                                        onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
-                                        onLoad={drawBoundingBoxes}
-                                        crossOrigin="anonymous"
-                                        style={{ display: 'block', maxHeight: '400px' }}
+                            <div className='relative group rounded-lg border shadow-sm overflow-hidden'>
+                                <img 
+                                    ref={imageRef}
+                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
+                                    alt="Current Inspection Image" 
+                                    className='w-full h-auto object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
+                                    onLoad={drawBoundingBoxes}
+                                    crossOrigin="anonymous"
+                                    style={{ maxHeight: '400px' }}
+                                />
+                                {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                                    <canvas
+                                        ref={canvasRef}
+                                        className="absolute top-0 left-0 pointer-events-none"
+                                        style={{ 
+                                            display: showBoxes ? 'block' : 'none'
+                                        }}
                                     />
-                                    {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
-                                        <canvas
-                                            ref={canvasRef}
-                                            className="absolute pointer-events-none"
-                                            style={{ 
-                                                display: showBoxes ? 'block' : 'none',
-                                                top: 0,
-                                                left: '50%',
-                                                transform: 'translateX(-50%)'
-                                            }}
-                                        />
-                                    )}
-                                </div>
+                                )}
                                 <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center pointer-events-none'>
                                     <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
                                 </div>
