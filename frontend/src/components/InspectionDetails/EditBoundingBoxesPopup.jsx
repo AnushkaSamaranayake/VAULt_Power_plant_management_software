@@ -22,6 +22,8 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [boxNotes, setBoxNotes] = useState({}); // Store notes for each box
+    const [expandedNotes, setExpandedNotes] = useState({}); // Track which note sections are expanded
 
     const MIN_ZOOM = 0.5;
     const MAX_ZOOM = 3;
@@ -87,9 +89,27 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
     const toggleEditMode = (index) => {
         if (editingBoxIndex === index) {
             setEditingBoxIndex(null);
+            // Collapse note section when exiting edit mode
+            setExpandedNotes(prev => ({ ...prev, [index]: false }));
         } else {
             setEditingBoxIndex(index);
+            // Expand note section when entering edit mode
+            setExpandedNotes(prev => ({ ...prev, [index]: true }));
         }
+    };
+
+    const handleNoteChange = (index, note) => {
+        setBoxNotes(prev => ({
+            ...prev,
+            [index]: note
+        }));
+    };
+
+    const toggleNoteExpansion = (index) => {
+        setExpandedNotes(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
     };
 
     const handleDeleteClick = (index) => {
@@ -109,6 +129,34 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                 .filter(idx => idx !== deleteIndex)
                 .map(idx => idx > deleteIndex ? idx - 1 : idx);
             return newVisible;
+        });
+
+        // Update notes - remove deleted box's note and adjust indices
+        setBoxNotes(prev => {
+            const newNotes = {};
+            Object.keys(prev).forEach(key => {
+                const idx = parseInt(key);
+                if (idx < deleteIndex) {
+                    newNotes[idx] = prev[key];
+                } else if (idx > deleteIndex) {
+                    newNotes[idx - 1] = prev[key];
+                }
+            });
+            return newNotes;
+        });
+
+        // Update expanded notes
+        setExpandedNotes(prev => {
+            const newExpanded = {};
+            Object.keys(prev).forEach(key => {
+                const idx = parseInt(key);
+                if (idx < deleteIndex) {
+                    newExpanded[idx] = prev[key];
+                } else if (idx > deleteIndex) {
+                    newExpanded[idx - 1] = prev[key];
+                }
+            });
+            return newExpanded;
         });
         
         // If the deleted box was being edited, clear edit mode
@@ -422,6 +470,9 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
         // Automatically enter edit mode for the new box
         setEditingBoxIndex(editedBoxes.length);
         
+        // Expand note section for new box
+        setExpandedNotes(prev => ({ ...prev, [editedBoxes.length]: true }));
+        
         // Close the dialog
         setShowAddDialog(false);
         setSelectedClass(null);
@@ -566,7 +617,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                                 <span>Add New Box</span>
                             </button>
                         </div>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
                             {editedBoxes.map((pred, idx) => {
                                 const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                                 const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
@@ -574,56 +625,110 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                                 const bgClass = pred.class === 0 ? 'bg-red-50' : pred.class === 1 ? 'bg-green-50' : 'bg-orange-50';
                                 const isVisible = visibleBoxes.includes(idx);
                                 const isEditing = editingBoxIndex === idx;
+                                const hasNote = boxNotes[idx] && boxNotes[idx].trim() !== '';
+                                const isNoteExpanded = expandedNotes[idx] || false;
                                 
                                 return (
-                                    <div key={idx} className={`flex items-center justify-between p-3 ${bgClass} rounded-lg border ${!isVisible ? 'opacity-50' : ''} ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
-                                        <div className="flex items-center space-x-3 flex-1">
-                                            {/* Visibility Checkbox */}
-                                            <label className="flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isVisible}
-                                                    onChange={() => toggleBoxVisibility(idx)}
-                                                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                                                />
-                                            </label>
-                                            
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
-                                                        Error {idx + 1}
-                                                    </span>
-                                                    <span className={`font-medium ${colorClass} text-sm`}>
-                                                        {className}
-                                                        {isEditing && <span className="ml-2 text-xs text-blue-600">(Editing)</span>}
-                                                    </span>
+                                    <div key={idx} className={`rounded-lg border ${!isVisible ? 'opacity-50' : ''} ${isEditing ? 'ring-2 ring-blue-500' : ''}`}>
+                                        {/* Main row */}
+                                        <div className={`flex items-center justify-between p-3 ${bgClass}`}>
+                                            <div className="flex items-center space-x-3 flex-1">
+                                                {/* Visibility Checkbox */}
+                                                <label className="flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isVisible}
+                                                        onChange={() => toggleBoxVisibility(idx)}
+                                                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                                    />
+                                                </label>
+                                                
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                            Error {idx + 1}
+                                                        </span>
+                                                        <span className={`font-medium ${colorClass} text-sm`}>
+                                                            {className}
+                                                            {isEditing && <span className="ml-2 text-xs text-blue-600">(Editing)</span>}
+                                                        </span>
+                                                        {hasNote && (
+                                                            <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+                                                                📝 Note added
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Box: [{pred.box.map(v => v.toFixed(0)).join(', ')}]
+                                                    </p>
                                                 </div>
-                                                <p className="text-xs text-gray-600 mt-1">
-                                                    Confidence: {(pred.confidence * 100).toFixed(1)}%
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Box: [{pred.box.map(v => v.toFixed(0)).join(', ')}]
-                                                </p>
+                                            </div>
+                                            <div className="flex space-x-2">
+                                                <button 
+                                                    onClick={() => toggleEditMode(idx)}
+                                                    className={`px-3 py-1 border text-sm rounded transition-colors ${
+                                                        isEditing 
+                                                            ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' 
+                                                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    {isEditing ? '✓ Done' : 'Edit'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteClick(idx)}
+                                                    className="px-3 py-1 bg-red-100 border border-red-300 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                                                >
+                                                    Delete
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex space-x-2">
-                                            <button 
-                                                onClick={() => toggleEditMode(idx)}
-                                                className={`px-3 py-1 border text-sm rounded transition-colors ${
-                                                    isEditing 
-                                                        ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' 
-                                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                }`}
+
+                                        {/* Note Section - Shows when editing or when note exists */}
+                                        {(isEditing || hasNote) && isNoteExpanded && (
+                                            <div className={`border-t ${bgClass} bg-opacity-50 p-3`}>
+                                                <div className="flex items-start space-x-2">
+                                                    <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                            Add Note (optional)
+                                                        </label>
+                                                        <textarea
+                                                            value={boxNotes[idx] || ''}
+                                                            onChange={(e) => handleNoteChange(idx, e.target.value)}
+                                                            placeholder="Add notes about this error detection or any changes made..."
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                                            rows="3"
+                                                        />
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            {boxNotes[idx] ? `${boxNotes[idx].length} characters` : 'No note added'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Expand/Collapse Note Toggle - Only show if not editing but has note */}
+                                        {!isEditing && hasNote && (
+                                            <button
+                                                onClick={() => toggleNoteExpansion(idx)}
+                                                className={`w-full py-2 text-xs text-gray-600 hover:text-gray-800 border-t ${bgClass} bg-opacity-30 flex items-center justify-center space-x-1 transition-colors`}
                                             >
-                                                {isEditing ? '✓ Done' : 'Edit'}
+                                                <span>{isNoteExpanded ? 'Hide Note' : 'Show Note'}</span>
+                                                <svg 
+                                                    className={`w-4 h-4 transform transition-transform ${isNoteExpanded ? 'rotate-180' : ''}`} 
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
                                             </button>
-                                            <button 
-                                                onClick={() => handleDeleteClick(idx)}
-                                                className="px-3 py-1 bg-red-100 border border-red-300 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
                                 );
                             })}
