@@ -17,6 +17,10 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     const [uploadError, setUploadError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [transformer, setTransformer] = useState(null);
+    const [boundingBoxes, setBoundingBoxes] = useState([]);
+    const [showBoxes, setShowBoxes] = useState(true);
+    const imageRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
 
     // Fetch transformer data for baseline image
     useEffect(() => {
@@ -33,6 +37,135 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             fetchTransformer();
         }
     }, [inspection?.transformerNo]);
+
+    // Parse bounding boxes when inspection data changes
+    useEffect(() => {
+        if (inspection?.aiBoundingBoxes) {
+            try {
+                const parsed = JSON.parse(inspection.aiBoundingBoxes);
+                setBoundingBoxes(parsed.predictions || []);
+            } catch (error) {
+                console.error('Failed to parse AI bounding boxes:', error);
+                setBoundingBoxes([]);
+            }
+        } else {
+            setBoundingBoxes([]);
+        }
+    }, [inspection?.aiBoundingBoxes]);
+
+    // Helper function to check AI status from state field
+    const getAiStatus = () => {
+        if (!inspection?.state) return null;
+        const state = inspection.state.toLowerCase();
+        if (state.includes('ai analysis pending') || state === 'pending') return 'pending';
+        if (state.includes('ai analysis completed') || state === 'completed') return 'completed';
+        if (state.includes('ai analysis failed') || state === 'failed') return 'failed';
+        return null;
+    };
+
+    // Draw bounding boxes on canvas
+    useEffect(() => {
+        if (showBoxes && boundingBoxes.length > 0 && imageRef.current && canvasRef.current) {
+            const image = imageRef.current;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            // Wait for image to load
+            if (image.complete) {
+                drawBoundingBoxes();
+            } else {
+                image.onload = drawBoundingBoxes;
+            }
+        }
+    }, [showBoxes, boundingBoxes]);
+
+    const drawBoundingBoxes = () => {
+        const image = imageRef.current;
+        const canvas = canvasRef.current;
+        if (!image || !canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+
+        // Get the actual displayed dimensions of the image
+        const rect = image.getBoundingClientRect();
+        const displayedWidth = image.offsetWidth;
+        const displayedHeight = image.offsetHeight;
+        const naturalWidth = image.naturalWidth;
+        const naturalHeight = image.naturalHeight;
+
+        // Calculate scaling ratios
+        const scaleX = displayedWidth / naturalWidth;
+        const scaleY = displayedHeight / naturalHeight;
+
+        // Set canvas size to match displayed image size exactly
+        canvas.width = displayedWidth;
+        canvas.height = displayedHeight;
+        
+        // Position canvas to match image position
+        canvas.style.width = displayedWidth + 'px';
+        canvas.style.height = displayedHeight + 'px';
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!showBoxes) return;
+
+        // Draw each bounding box
+        boundingBoxes.forEach((prediction, index) => {
+            const [x1, y1, x2, y2] = prediction.box;
+            
+            // Scale coordinates to match displayed image size
+            const scaledX1 = x1 * scaleX;
+            const scaledY1 = y1 * scaleY;
+            const scaledX2 = x2 * scaleX;
+            const scaledY2 = y2 * scaleY;
+            const width = scaledX2 - scaledX1;
+            const height = scaledY2 - scaledY1;
+
+            // Color based on class
+            let color;
+            switch (prediction.class) {
+                case 0:
+                    color = '#ef4444'; // Red - Faulty
+                    break;
+                case 1:
+                    color = '#10b981'; // Green - Normal
+                    break;
+                case 2:
+                    color = '#f59e0b'; // Orange - Potentially Faulty
+                    break;
+                default:
+                    color = '#6b7280'; // Gray
+            }
+
+            // Draw rectangle
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(scaledX1, scaledY1, width, height);
+
+            // Draw error number badge in top-left corner
+            const errorNumber = `${index + 1}`;
+            ctx.font = 'bold 14px Arial';
+            const textMetrics = ctx.measureText(errorNumber);
+            const badgeSize = 24;
+            
+            // Draw circular badge background
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(scaledX1 + badgeSize/2, scaledY1 + badgeSize/2, badgeSize/2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw error number
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(errorNumber, scaledX1 + badgeSize/2, scaledY1 + badgeSize/2);
+            
+            // Reset text alignment
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        });
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -278,18 +411,51 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                 
                 {/* Side-by-Side Image Display */}
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
-                    {/* Current Inspection Image */}
+                    {/* Current Inspection Image with AI Analysis */}
                     <div className='space-y-2'>
-                        <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
+                        <div className='flex items-center justify-between'>
+                            <h3 className='text-sm font-semibold text-gray-700'>
+                                Current Inspection {getAiStatus() === 'completed' && boundingBoxes.length > 0 && '(AI Analysis)'}
+                            </h3>
+                            {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                                <label className="flex items-center space-x-1 cursor-pointer text-xs">
+                                    <input
+                                        type="checkbox"
+                                        checked={showBoxes}
+                                        onChange={(e) => setShowBoxes(e.target.checked)}
+                                        className="w-3 h-3 text-blue-600 rounded"
+                                    />
+                                    <span className="text-gray-600">Show Boxes</span>
+                                </label>
+                            )}
+                        </div>
                         {inspection?.maintenanceImagePath ? (
-                            <div className='relative group'>
-                                <img 
-                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
-                                    alt="Current Inspection Image" 
-                                    className='w-full h-auto max-h-80 object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
-                                    onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
-                                />
-                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center'>
+                            <div className='relative group rounded-lg border shadow-sm overflow-hidden' style={{ display: 'inline-block', width: '100%' }}>
+                                <div className='relative' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <img 
+                                        ref={imageRef}
+                                        src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
+                                        alt="Current Inspection Image" 
+                                        className='max-w-full h-auto max-h-80 object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
+                                        onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
+                                        onLoad={drawBoundingBoxes}
+                                        crossOrigin="anonymous"
+                                        style={{ display: 'block' }}
+                                    />
+                                    {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                                        <canvas
+                                            ref={canvasRef}
+                                            className="absolute pointer-events-none"
+                                            style={{ 
+                                                display: showBoxes ? 'block' : 'none',
+                                                top: 0,
+                                                left: '50%',
+                                                transform: 'translateX(-50%)'
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center pointer-events-none'>
                                     <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
                                 </div>
                             </div>

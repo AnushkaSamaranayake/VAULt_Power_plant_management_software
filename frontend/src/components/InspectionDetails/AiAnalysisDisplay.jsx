@@ -305,50 +305,28 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                 </div>
             )}
 
-            {/* Analysis Results */}
+            {/* Analysis Summary */}
             {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
                 <>
-                    {/* Image with Bounding Boxes */}
-                    <div className="border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center" style={{ maxHeight: '60vh' }}>
-                        <div className="relative inline-block">
-                            <img
-                                ref={imageRef}
-                                src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
-                                alt="Thermal Analysis"
-                                className="max-w-full max-h-[60vh] h-auto object-contain block"
-                                crossOrigin="anonymous"
-                                onLoad={drawBoundingBoxes}
-                            />
-                            <canvas
-                                ref={canvasRef}
-                                className="absolute top-0 left-0 pointer-events-none"
-                                style={{ display: showBoxes ? 'block' : 'none' }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center justify-between">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={showBoxes}
-                                onChange={(e) => setShowBoxes(e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">Show Bounding Boxes</span>
-                        </label>
+                    {/* Summary Info */}
+                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-600">
-                                {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
-                            </span>
-                            <button
-                                onClick={() => setShowEditPopup(true)}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                Edit Bounding Boxes
-                            </button>
+                            <Brain className="w-5 h-5 text-blue-600" />
+                            <div>
+                                <p className="text-sm font-semibold text-blue-900">
+                                    {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
+                                </p>
+                                <p className="text-xs text-blue-700">
+                                    View analysis in the comparison view above
+                                </p>
+                            </div>
                         </div>
+                        <button
+                            onClick={() => setShowEditPopup(true)}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            Edit Bounding Boxes
+                        </button>
                     </div>
 
                     {/* Detection Details */}
