@@ -57,9 +57,19 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size to match image
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
+        // Get the displayed size of the image
+        const displayedWidth = image.width;
+        const displayedHeight = image.height;
+        const naturalWidth = image.naturalWidth;
+        const naturalHeight = image.naturalHeight;
+
+        // Calculate scaling ratios
+        const scaleX = displayedWidth / naturalWidth;
+        const scaleY = displayedHeight / naturalHeight;
+
+        // Set canvas size to match displayed image size
+        canvas.width = displayedWidth;
+        canvas.height = displayedHeight;
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -69,8 +79,14 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         // Draw each bounding box
         boundingBoxes.forEach((prediction) => {
             const [x1, y1, x2, y2] = prediction.box;
-            const width = x2 - x1;
-            const height = y2 - y1;
+            
+            // Scale coordinates to match displayed image size
+            const scaledX1 = x1 * scaleX;
+            const scaledY1 = y1 * scaleY;
+            const scaledX2 = x2 * scaleX;
+            const scaledY2 = y2 * scaleY;
+            const width = scaledX2 - scaledX1;
+            const height = scaledY2 - scaledY1;
 
             // Color based on class
             let color, label;
@@ -95,7 +111,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             // Draw rectangle
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
-            ctx.strokeRect(x1, y1, width, height);
+            ctx.strokeRect(scaledX1, scaledY1, width, height);
 
             // Draw label background
             const labelText = `${label} (${(prediction.confidence * 100).toFixed(1)}%)`;
@@ -104,11 +120,11 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             const textHeight = 20;
             
             ctx.fillStyle = color;
-            ctx.fillRect(x1, y1 - textHeight - 4, textMetrics.width + 8, textHeight + 4);
+            ctx.fillRect(scaledX1, scaledY1 - textHeight - 4, textMetrics.width + 8, textHeight + 4);
 
             // Draw label text
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(labelText, x1 + 4, y1 - 6);
+            ctx.fillText(labelText, scaledX1 + 4, scaledY1 - 6);
         });
     };
 
@@ -277,19 +293,22 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
                 <>
                     {/* Image with Bounding Boxes */}
-                    <div className="relative border rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                            ref={imageRef}
-                            src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
-                            alt="Thermal Analysis"
-                            className="w-full h-auto"
-                            crossOrigin="anonymous"
-                        />
-                        <canvas
-                            ref={canvasRef}
-                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                            style={{ display: showBoxes ? 'block' : 'none' }}
-                        />
+                    <div className="border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center" style={{ maxHeight: '60vh' }}>
+                        <div className="relative inline-block">
+                            <img
+                                ref={imageRef}
+                                src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                                alt="Thermal Analysis"
+                                className="max-w-full max-h-[60vh] h-auto object-contain block"
+                                crossOrigin="anonymous"
+                                onLoad={drawBoundingBoxes}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                className="absolute top-0 left-0 pointer-events-none"
+                                style={{ display: showBoxes ? 'block' : 'none' }}
+                            />
+                        </div>
                     </div>
 
                     {/* Controls */}
