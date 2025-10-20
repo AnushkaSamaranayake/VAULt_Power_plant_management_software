@@ -3,8 +3,6 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Upload, Eye, Trash2, X, AlertCircle } from 'lucide-react';
-import InteractiveImageViewer from '../common/InteractiveImageViewer';
-import InteractiveImageModal from '../common/InteractiveImageModal';
 
 const ImageUpload = ({ inspection, onInspectionUpdate }) => {
 
@@ -19,6 +17,10 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     const [uploadError, setUploadError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [transformer, setTransformer] = useState(null);
+    const [boundingBoxes, setBoundingBoxes] = useState([]);
+    const [showBoxes, setShowBoxes] = useState(true);
+    const imageRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
 
     // Fetch transformer data for baseline image
     useEffect(() => {
@@ -35,6 +37,149 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             fetchTransformer();
         }
     }, [inspection?.transformerNo]);
+
+    // Parse bounding boxes when inspection data changes
+    useEffect(() => {
+        if (inspection?.aiBoundingBoxes) {
+            try {
+                const parsed = JSON.parse(inspection.aiBoundingBoxes);
+                setBoundingBoxes(parsed.predictions || []);
+            } catch (error) {
+                console.error('Failed to parse AI bounding boxes:', error);
+                setBoundingBoxes([]);
+            }
+        } else {
+            setBoundingBoxes([]);
+        }
+    }, [inspection?.aiBoundingBoxes]);
+
+    // Helper function to check AI status from state field
+    const getAiStatus = () => {
+        if (!inspection?.state) return null;
+        const state = inspection.state.toLowerCase();
+        if (state.includes('ai analysis pending') || state === 'pending') return 'pending';
+        if (state.includes('ai analysis completed') || state === 'completed') return 'completed';
+        if (state.includes('ai analysis failed') || state === 'failed') return 'failed';
+        return null;
+    };
+
+    // Draw bounding boxes on canvas
+    useEffect(() => {
+        if (showBoxes && boundingBoxes.length > 0 && imageRef.current && canvasRef.current) {
+            const image = imageRef.current;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            // Wait for image to load
+            if (image.complete) {
+                drawBoundingBoxes();
+            } else {
+                image.onload = drawBoundingBoxes;
+            }
+
+            // Add resize observer to handle zoom and window resize
+            const resizeObserver = new ResizeObserver(() => {
+                drawBoundingBoxes();
+            });
+            resizeObserver.observe(image);
+
+            // Also listen to window resize for zoom changes
+            const handleResize = () => {
+                drawBoundingBoxes();
+            };
+            window.addEventListener('resize', handleResize);
+
+            return () => {
+                resizeObserver.disconnect();
+                window.removeEventListener('resize', handleResize);
+            };
+        }
+    }, [showBoxes, boundingBoxes]);
+
+    const drawBoundingBoxes = () => {
+        const image = imageRef.current;
+        const canvas = canvasRef.current;
+        if (!image || !canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+
+        // Get the actual rendered dimensions of the image element
+        const displayedWidth = image.clientWidth;
+        const displayedHeight = image.clientHeight;
+        const naturalWidth = image.naturalWidth;
+        const naturalHeight = image.naturalHeight;
+
+        if (!displayedWidth || !displayedHeight || !naturalWidth || !naturalHeight) return;
+
+        // Calculate scaling ratios
+        const scaleX = displayedWidth / naturalWidth;
+        const scaleY = displayedHeight / naturalHeight;
+
+        // Set canvas size to match displayed image size exactly
+        canvas.width = displayedWidth;
+        canvas.height = displayedHeight;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!showBoxes) return;
+
+        // Draw each bounding box
+        boundingBoxes.forEach((prediction, index) => {
+            const [x1, y1, x2, y2] = prediction.box;
+            
+            // Scale coordinates to match displayed image size
+            const scaledX1 = x1 * scaleX;
+            const scaledY1 = y1 * scaleY;
+            const scaledX2 = x2 * scaleX;
+            const scaledY2 = y2 * scaleY;
+            const width = scaledX2 - scaledX1;
+            const height = scaledY2 - scaledY1;
+
+            // Color based on class
+            let color;
+            switch (prediction.class) {
+                case 0:
+                    color = '#ef4444'; // Red - Faulty
+                    break;
+                case 1:
+                    color = '#10b981'; // Green - Normal
+                    break;
+                case 2:
+                    color = '#f59e0b'; // Orange - Potentially Faulty
+                    break;
+                default:
+                    color = '#6b7280'; // Gray
+            }
+
+            // Draw rectangle
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(scaledX1, scaledY1, width, height);
+
+            // Draw error number badge in top-left corner
+            const errorNumber = `${index + 1}`;
+            ctx.font = 'bold 14px Arial';
+            const textMetrics = ctx.measureText(errorNumber);
+            const badgeSize = 24;
+            
+            // Draw circular badge background
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(scaledX1 + badgeSize/2, scaledY1 + badgeSize/2, badgeSize/2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw error number
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(errorNumber, scaledX1 + badgeSize/2, scaledY1 + badgeSize/2);
+            
+            // Reset text alignment
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        });
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -171,9 +316,9 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
     };
 
     return (
-        <div className='flex flex-row items-start justify-between space-x-6'>
+        <div className='flex flex-row items-stretch justify-between space-x-6'>
             {/* Upload Section */}
-            <div className='flex flex-col bg-white w-1/3 shadow-md rounded-md p-6'>
+            <div className='flex flex-col bg-white w-1/4 shadow-md rounded-md p-6'>
                 <div className='flex flex-row items-center justify-between mb-6'>
                     <h1 className='font-semibold text-md'>Maintenance Image Upload</h1>
                     <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
@@ -270,7 +415,7 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
             </div>
 
             {/* Image Display Section - Side by Side Comparison */}
-            <div className='flex flex-col bg-white w-2/3 shadow-md rounded-md p-6'>
+            <div className='flex flex-col bg-white w-3/4 shadow-md rounded-md p-6'>
                 <div className='flex flex-row items-center justify-between mb-6'>
                     <h1 className='font-semibold text-md'>Thermal Image Analysis</h1>
                     <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection?.status)}`}>
@@ -278,34 +423,55 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                     </div>
                 </div>
                 
-                {/* Single Image Display - Current Inspection Only */}
-                <div className='mb-4'>
-                    {/* Current Inspection Image */}
+                {/* Side-by-Side Image Display */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4'>
+                    {/* Current Inspection Image with AI Analysis */}
                     <div className='space-y-2'>
-                        <h3 className='text-sm font-semibold text-gray-700'>Current Inspection</h3>
+                        <div className='flex items-center justify-between'>
+                            <h3 className='text-sm font-semibold text-gray-700'>
+                                Current Inspection {getAiStatus() === 'completed' && boundingBoxes.length > 0 && '(AI Analysis)'}
+                            </h3>
+                            {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                                <label className="flex items-center space-x-1 cursor-pointer text-xs">
+                                    <input
+                                        type="checkbox"
+                                        checked={showBoxes}
+                                        onChange={(e) => setShowBoxes(e.target.checked)}
+                                        className="w-3 h-3 text-blue-600 rounded"
+                                    />
+                                    <span className="text-gray-600">Show Boxes</span>
+                                </label>
+                            )}
+                        </div>
                         {inspection?.maintenanceImagePath ? (
-                            <div className='relative' style={{ height: '420px' }}>
-                                <InteractiveImageViewer
-                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
-                                    alt="Current Inspection Image"
-                                    className="rounded-lg"
-                                    containerClassName="w-full h-full border shadow-sm"
-                                    showControls={true}
-                                />
-                                
-                                {/* Full-screen button */}
-                                <button
+                            <div className='relative group rounded-lg border shadow-sm overflow-hidden'>
+                                <img 
+                                    ref={imageRef}
+                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`} 
+                                    alt="Current Inspection Image" 
+                                    className='w-full h-auto object-contain block cursor-pointer hover:opacity-90 transition-opacity duration-200'
                                     onClick={() => handleViewImage(`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`)}
-                                    className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg p-2 shadow-lg transition-all duration-200"
-                                    title="Open in full screen"
-                                >
-                                    <Eye className="w-4 h-4" />
-                                </button>
+                                    onLoad={drawBoundingBoxes}
+                                    crossOrigin="anonymous"
+                                    style={{ maxHeight: '400px' }}
+                                />
+                                {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                                    <canvas
+                                        ref={canvasRef}
+                                        className="absolute top-0 left-0 pointer-events-none"
+                                        style={{ 
+                                            display: showBoxes ? 'block' : 'none'
+                                        }}
+                                    />
+                                )}
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center pointer-events-none'>
+                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                                </div>
                             </div>
                         ) : (
                             <div 
                                 className='w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all duration-200 cursor-pointer'
-                                style={{ height: '420px' }}
+                                style={{ height: '400px' }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
@@ -346,6 +512,74 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                                 'No image uploaded'
                             }
                             {inspection?.weather && ` • Weather: ${inspection.weather}`}
+                        </div>
+                    </div>
+
+                    {/* Baseline Reference Image */}
+                    <div className='space-y-2'>
+                        <h3 className='text-sm font-semibold text-gray-700'>Baseline Reference</h3>
+                        {transformer?.baselineImagePath ? (
+                            <div className='relative group'>
+                                <img 
+                                    src={`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`} 
+                                    alt="Baseline Reference Image" 
+                                    className='w-full h-auto object-contain rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200'
+                                    onClick={() => handleViewImage(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`)}
+                                    style={{ maxHeight: '400px' }}
+                                />
+                                <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center pointer-events-none'>
+                                    <Eye className='w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200' />
+                                </div>
+                            </div>
+                        ) : (
+                            <div 
+                                className='w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-400 transition-all duration-200 cursor-pointer'
+                                style={{ height: '400px' }}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-orange-500', 'bg-orange-50');
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const file = files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            handleBaselineUpload(file);
+                                        }
+                                    }
+                                }}
+                                onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/jpeg,image/png,image/gif';
+                                    input.onchange = (e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            handleBaselineUpload(e.target.files[0]);
+                                        }
+                                    };
+                                    input.click();
+                                }}
+                            >
+                                <div className='text-center text-gray-500'>
+                                    <Upload className="w-8 h-8 mx-auto mb-2" />
+                                    <p className='text-sm font-medium'>Drop baseline image here</p>
+                                    <p className='text-xs'>or click to browse</p>
+                                    <p className='text-xs mt-1 text-gray-400'>JPG, PNG, GIF (Max: 10MB)</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className='text-xs text-gray-500'>
+                            {transformer?.baselineImageUploadDateAndTime ? 
+                                `Captured: ${new Date(transformer.baselineImageUploadDateAndTime).toLocaleDateString()}` :
+                                'Baseline not set'
+                            }
+                            {transformer?.weather && ` • Weather: ${transformer.weather}`}
                         </div>
                     </div>
                 </div>
@@ -493,15 +727,25 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
                 </div>
             )}
 
-            {/* Interactive Image View Modal */}
+            {/* Image View Modal */}
             {showImageModal && currentImageUrl && (
-                <InteractiveImageModal
-                    isOpen={showImageModal}
-                    onClose={() => setShowImageModal(false)}
-                    src={currentImageUrl}
-                    alt="Thermal Image - Full Screen"
-                    title="Thermal Image Comparison"
-                />
+                <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-75' style={{ zIndex: 10000 }}>
+                    <div className='relative max-w-7xl max-h-[90vh] p-8'>
+                        <button
+                            onClick={() => setShowImageModal(false)}
+                            className='absolute -top-2 -right-2 p-3 bg-white rounded-full hover:bg-gray-100 transition-all duration-200 shadow-lg z-10'
+                            title="Close"
+                        >
+                            <X className='w-6 h-6 text-gray-800' />
+                        </button>
+                        <img 
+                            src={currentImageUrl} 
+                            alt="Full Size Thermal Image" 
+                            className='max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl'
+                            crossOrigin="anonymous"
+                        />
+                    </div>
+                </div>
             )}
         </div>
     )
