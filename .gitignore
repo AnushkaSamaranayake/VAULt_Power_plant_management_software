@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 test/
 backend/src/main/resources/application.properties
+log/
