@@ -1,5 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, Query
-from app.inference import run_inference
+from app.inference import run_inference, reload_model
+from app.retrain import retrain_model
+from app.sync_from_api import sync_from_api
+import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = FastAPI(title = "YOLOv8 Thermal Anomaly Detection API")
 
@@ -39,13 +43,56 @@ def root():
 async def inference(
     file: UploadFile = File(...),
     conf_threshold: float = Query(0.50, description="Confidence threshold for predictions")
-):
-    
+):  
     #Readfile
-
     image_bytes = await file.read()
-
     #Run inference
     predictions = run_inference(image_bytes, conf_threshold)
 
     return {"predictions": predictions}
+
+@app.post("/sync-dataset")
+def sync_dataset():
+    count = sync_from_api()
+    msg = f"Dataset synchronized successfully. {count} images downloaded and labeled."
+    if count >= 5:
+        msg += " Consider retraining the model to improve performance."
+    return {"message": msg, "images_synced": count}
+
+@app.post("/retrain")
+def retrain():
+    retrain_model()
+    reload_model()
+    return {"message": "Model retrained and reloaded successfully."}
+
+API_URL = "http://localhost:8080/api/inspections/bounding-box-changes"
+previous_count = 0
+
+def check_and_retrain():
+    global previous_count
+    try:
+        res = requests.get(API_URL)
+        data = res.json()
+        current_count = len(data)
+        new_count = current_count - previous_count
+
+        if new_count >=5:
+            print("Auto triggering for retraining the model...")
+            sync_from_api()
+            retrain_model()
+            reload_model()
+            previous_count = current_count
+        elif new_count < 0:
+            previous_count = current_count
+
+    except Exception as e:
+        print(f"Auto check failed. Error occurred: {e}")
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(check_and_retrain, 'interval', minutes=5)
+scheduler.start()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown()

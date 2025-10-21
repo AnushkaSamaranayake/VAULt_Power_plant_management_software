@@ -858,4 +858,100 @@ public class InspectionService {
                     }
                 });
     }
+    
+    /**
+     * Get all inspections with edited or deleted bounding box data
+     * @return List of InspectionDTOs that have bounding box changes
+     */
+    public List<InspectionDTO> getInspectionsWithBoundingBoxChanges() {
+        return inspectionRepository.findInspectionsWithBoundingBoxChanges()
+                .stream()
+                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get inspections with bounding box changes for a specific transformer
+     * @param transformerNo The transformer number to filter by
+     * @return List of InspectionDTOs with bounding box changes for the transformer
+     */
+    public List<InspectionDTO> getInspectionsWithBoundingBoxChangesByTransformer(String transformerNo) {
+        return inspectionRepository.findInspectionsWithBoundingBoxChangesByTransformer(transformerNo)
+                .stream()
+                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get bounding box details (edited and deleted) for a specific inspection
+     * @param inspectionNo The inspection number
+     * @return Map containing edited and deleted bounding box data
+     */
+    public Optional<java.util.Map<String, Object>> getBoundingBoxDetails(Long inspectionNo) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    java.util.Map<String, Object> result = new java.util.HashMap<>();
+                    result.put("inspectionNo", inspection.getInspectionNo());
+                    result.put("transformerNo", inspection.getTransformerNo());
+                    result.put("dateOfInspection", inspection.getDateOfInspectionAndTime());
+                    result.put("editedOrManuallyAddedBoxes", inspection.getEditedOrManuallyAddedBoxes());
+                    result.put("deletedBoundingBoxes", inspection.getDeletedBoundingBoxes());
+                    return result;
+                });
+    }
+    
+    /**
+     * Clean up all bounding box annotations after model retraining
+     * This method clears edited and deleted bounding box data for all inspections
+     * @return Number of inspections updated
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public int cleanupAllBoundingBoxAnnotations() {
+        return inspectionRepository.cleanupAllBoundingBoxAnnotations();
+    }
+    
+    /**
+     * Clean up bounding box annotations for a specific transformer after model retraining
+     * @param transformerNo The transformer number to clean up
+     * @return Number of inspections updated
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public int cleanupBoundingBoxAnnotationsByTransformer(String transformerNo) {
+        return inspectionRepository.cleanupBoundingBoxAnnotationsByTransformer(transformerNo);
+    }
+    
+    /**
+     * Clean up bounding box annotations for a specific inspection
+     * @param inspectionNo The inspection number to clean up
+     * @return Number of inspections updated (should be 0 or 1)
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public int cleanupBoundingBoxAnnotationsById(Long inspectionNo) {
+        return inspectionRepository.cleanupBoundingBoxAnnotationsById(inspectionNo);
+    }
+    
+    /**
+     * Get statistics about bounding box annotations before cleanup
+     * @return Map containing counts of inspections with annotations
+     */
+    public java.util.Map<String, Object> getBoundingBoxAnnotationStats() {
+        List<Inspection> inspectionsWithChanges = inspectionRepository.findInspectionsWithBoundingBoxChanges();
+        long totalInspections = inspectionRepository.count();
+        
+        long withEditedBoxes = inspectionsWithChanges.stream()
+                .filter(i -> i.getEditedOrManuallyAddedBoxes() != null && !i.getEditedOrManuallyAddedBoxes().trim().isEmpty())
+                .count();
+        
+        long withDeletedBoxes = inspectionsWithChanges.stream()
+                .filter(i -> i.getDeletedBoundingBoxes() != null && !i.getDeletedBoundingBoxes().trim().isEmpty())
+                .count();
+        
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalInspections", totalInspections);
+        stats.put("inspectionsWithBoundingBoxChanges", inspectionsWithChanges.size());
+        stats.put("inspectionsWithEditedBoxes", withEditedBoxes);
+        stats.put("inspectionsWithDeletedBoxes", withDeletedBoxes);
+        
+        return stats;
+    }
 }
