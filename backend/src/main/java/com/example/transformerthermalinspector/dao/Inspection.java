@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-import com.example.transformerthermalinspector.dao.Transformer;
 
 /**
  * Entity representing a transformer inspection record.
@@ -59,6 +58,14 @@ public class Inspection {
     // AI analysis results - bounding box coordinates from YOLO model - CAN BE NULL (analyzed later)
     @Column(name = "ai_bounding_boxes", columnDefinition = "TEXT", nullable = true)
     private String aiBoundingBoxes; // Stored as JSON string
+
+    // User annotations: edited or manually added boxes (stored as JSON string)
+    @Column(name = "edited_or_manually_added_boxes", columnDefinition = "TEXT", nullable = true)
+    private String editedOrManuallyAddedBoxes;
+
+    // User annotations: deleted bounding boxes (stored as JSON string)
+    @Column(name = "deleted_bounding_boxes", columnDefinition = "TEXT", nullable = true)
+    private String deletedBoundingBoxes;
 
     // Many inspections belong to one transformer
     @ManyToOne(fetch = FetchType.LAZY)

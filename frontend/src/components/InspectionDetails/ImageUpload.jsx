@@ -38,20 +38,39 @@ const ImageUpload = ({ inspection, onInspectionUpdate }) => {
         }
     }, [inspection?.transformerNo]);
 
-    // Parse bounding boxes when inspection data changes
+    // Load effective boxes (AI + edited + added - deleted) when inspection data changes
     useEffect(() => {
-        if (inspection?.aiBoundingBoxes) {
-            try {
-                const parsed = JSON.parse(inspection.aiBoundingBoxes);
-                setBoundingBoxes(parsed.predictions || []);
-            } catch (error) {
-                console.error('Failed to parse AI bounding boxes:', error);
+        const loadEffective = async () => {
+            if (!inspection?.inspectionNo) {
                 setBoundingBoxes([]);
+                return;
             }
-        } else {
-            setBoundingBoxes([]);
-        }
-    }, [inspection?.aiBoundingBoxes]);
+            try {
+                const res = await axios.get(`http://localhost:8080/api/inspections/${inspection.inspectionNo}/effective-boxes`);
+                const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+                setBoundingBoxes((data && Array.isArray(data.predictions)) ? data.predictions : []);
+            } catch (err) {
+                console.error('Failed to fetch effective boxes, falling back to AI boxes:', err);
+                if (inspection?.aiBoundingBoxes) {
+                    try {
+                        const parsed = JSON.parse(inspection.aiBoundingBoxes);
+                        setBoundingBoxes(parsed.predictions || []);
+                    } catch (e) {
+                        console.error('Failed to parse AI bounding boxes:', e);
+                        setBoundingBoxes([]);
+                    }
+                } else {
+                    setBoundingBoxes([]);
+                }
+            }
+        };
+        loadEffective();
+    }, [
+        inspection?.inspectionNo,
+        inspection?.aiBoundingBoxes,
+        inspection?.editedOrManuallyAddedBoxes,
+        inspection?.deletedBoundingBoxes
+    ]);
 
     // Helper function to check AI status from state field
     const getAiStatus = () => {

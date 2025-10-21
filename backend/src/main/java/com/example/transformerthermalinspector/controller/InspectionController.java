@@ -1,6 +1,7 @@
 package com.example.transformerthermalinspector.controller;
 
 import com.example.transformerthermalinspector.dto.InspectionDTO;
+import com.example.transformerthermalinspector.dto.AnnotationUpdateRequest;
 import com.example.transformerthermalinspector.service.InspectionService;
 import com.example.transformerthermalinspector.service.ImageStorageService;
 import lombok.RequiredArgsConstructor;
@@ -279,6 +280,58 @@ public class InspectionController {
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Save user annotations (added/edited/deleted boxes) for an inspection
+     * POST /api/inspections/{inspectionNo}/annotations
+     */
+    @PostMapping("/{inspectionNo}/annotations")
+    public ResponseEntity<InspectionDTO> saveAnnotations(
+            @PathVariable("inspectionNo") Long inspectionNo,
+            @RequestBody AnnotationUpdateRequest request) {
+        try {
+            Optional<InspectionDTO> updated = inspectionService.saveAnnotations(inspectionNo, request);
+            return updated.map(inspectionDTO -> new ResponseEntity<>(inspectionDTO, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Get effective bounding boxes (AI + edited + added - deleted)
+     * GET /api/inspections/{inspectionNo}/effective-boxes
+     */
+    @GetMapping("/{inspectionNo}/effective-boxes")
+    public ResponseEntity<String> getEffectiveBoxes(@PathVariable("inspectionNo") Long inspectionNo) {
+        try {
+            Optional<String> effectiveBoxes = inspectionService.getEffectiveBoxes(inspectionNo);
+            return effectiveBoxes.map(boxes -> new ResponseEntity<>(boxes, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Recover a deleted bounding box
+     * POST /api/inspections/{inspectionNo}/annotations/recover
+     */
+    @PostMapping("/{inspectionNo}/annotations/recover")
+    public ResponseEntity<InspectionDTO> recoverDeletedBox(
+            @PathVariable("inspectionNo") Long inspectionNo,
+            @RequestBody java.util.Map<String, Object> request) {
+        try {
+            Optional<InspectionDTO> updated = inspectionService.recoverDeletedBox(inspectionNo, request);
+            return updated.map(inspectionDTO -> new ResponseEntity<>(inspectionDTO, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

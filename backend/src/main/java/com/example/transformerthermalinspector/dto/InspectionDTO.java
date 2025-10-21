@@ -35,6 +35,8 @@ public class InspectionDTO {
     private LocalDateTime maintenanceImageUploadDateAndTime; // Image upload timestamp
     private String weather; // Weather conditions during inspection
     private String aiBoundingBoxes; // AI analysis bounding boxes (JSON string)
+    private String editedOrManuallyAddedBoxes; // User-added/edited boxes (JSON string)
+    private String deletedBoundingBoxes; // User-deleted boxes (JSON string)
     
     // Computed property to provide maintenance image URL for frontend
     @JsonProperty("maintenanceImageUrl")
