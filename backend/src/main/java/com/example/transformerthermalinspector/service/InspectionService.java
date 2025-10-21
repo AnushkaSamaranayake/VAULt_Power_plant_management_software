@@ -858,4 +858,45 @@ public class InspectionService {
                     }
                 });
     }
+    
+    /**
+     * Get all inspections with edited or deleted bounding box data
+     * @return List of InspectionDTOs that have bounding box changes
+     */
+    public List<InspectionDTO> getInspectionsWithBoundingBoxChanges() {
+        return inspectionRepository.findInspectionsWithBoundingBoxChanges()
+                .stream()
+                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get inspections with bounding box changes for a specific transformer
+     * @param transformerNo The transformer number to filter by
+     * @return List of InspectionDTOs with bounding box changes for the transformer
+     */
+    public List<InspectionDTO> getInspectionsWithBoundingBoxChangesByTransformer(String transformerNo) {
+        return inspectionRepository.findInspectionsWithBoundingBoxChangesByTransformer(transformerNo)
+                .stream()
+                .map(inspection -> modelMapper.map(inspection, InspectionDTO.class))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get bounding box details (edited and deleted) for a specific inspection
+     * @param inspectionNo The inspection number
+     * @return Map containing edited and deleted bounding box data
+     */
+    public Optional<java.util.Map<String, Object>> getBoundingBoxDetails(Long inspectionNo) {
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    java.util.Map<String, Object> result = new java.util.HashMap<>();
+                    result.put("inspectionNo", inspection.getInspectionNo());
+                    result.put("transformerNo", inspection.getTransformerNo());
+                    result.put("dateOfInspection", inspection.getDateOfInspectionAndTime());
+                    result.put("editedOrManuallyAddedBoxes", inspection.getEditedOrManuallyAddedBoxes());
+                    result.put("deletedBoundingBoxes", inspection.getDeletedBoundingBoxes());
+                    return result;
+                });
+    }
 }

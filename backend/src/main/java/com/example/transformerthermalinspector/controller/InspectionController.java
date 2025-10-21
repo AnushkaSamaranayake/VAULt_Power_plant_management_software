@@ -334,4 +334,57 @@ public class InspectionController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    
+    /**
+     * Get all inspections with bounding box changes (edited or deleted boxes)
+     * GET /api/inspections/bounding-box-changes
+     */
+    @GetMapping("/bounding-box-changes")
+    public ResponseEntity<List<InspectionDTO>> getInspectionsWithBoundingBoxChanges() {
+        try {
+            List<InspectionDTO> inspections = inspectionService.getInspectionsWithBoundingBoxChanges();
+            if (inspections.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            return new ResponseEntity<>(inspections, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Get inspections with bounding box changes for a specific transformer
+     * GET /api/inspections/transformer/{transformerNo}/bounding-box-changes
+     */
+    @GetMapping("/transformer/{transformerNo}/bounding-box-changes")
+    public ResponseEntity<List<InspectionDTO>> getInspectionsWithBoundingBoxChangesByTransformer(
+            @PathVariable("transformerNo") String transformerNo) {
+        try {
+            List<InspectionDTO> inspections = inspectionService.getInspectionsWithBoundingBoxChangesByTransformer(transformerNo);
+            if (inspections.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            return new ResponseEntity<>(inspections, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Get bounding box details (edited and deleted) for a specific inspection
+     * GET /api/inspections/{inspectionNo}/bounding-box-details
+     */
+    @GetMapping("/{inspectionNo}/bounding-box-details")
+    public ResponseEntity<java.util.Map<String, Object>> getBoundingBoxDetails(@PathVariable("inspectionNo") Long inspectionNo) {
+        try {
+            Optional<java.util.Map<String, Object>> boundingBoxDetails = inspectionService.getBoundingBoxDetails(inspectionNo);
+            return boundingBoxDetails.map(details -> new ResponseEntity<>(details, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

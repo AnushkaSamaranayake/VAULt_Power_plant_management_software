@@ -32,4 +32,12 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     // Find inspections within a date range
     @Query("SELECT i FROM Inspection i WHERE i.dateOfInspectionAndTime BETWEEN :startDate AND :endDate")
     List<Inspection> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
+    // Find inspections that have edited or deleted bounding boxes
+    @Query("SELECT i FROM Inspection i WHERE i.editedOrManuallyAddedBoxes IS NOT NULL OR i.deletedBoundingBoxes IS NOT NULL")
+    List<Inspection> findInspectionsWithBoundingBoxChanges();
+    
+    // Find inspections with bounding box changes for a specific transformer
+    @Query("SELECT i FROM Inspection i WHERE i.transformerNo = :transformerNo AND (i.editedOrManuallyAddedBoxes IS NOT NULL OR i.deletedBoundingBoxes IS NOT NULL)")
+    List<Inspection> findInspectionsWithBoundingBoxChangesByTransformer(@Param("transformerNo") String transformerNo);
 }
