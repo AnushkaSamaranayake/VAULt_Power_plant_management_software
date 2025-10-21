@@ -387,4 +387,118 @@ public class InspectionController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    
+    /**
+     * Clean up all bounding box annotations after model retraining
+     * POST /api/inspections/cleanup/all-annotations
+     */
+    @PostMapping("/cleanup/all-annotations")
+    public ResponseEntity<java.util.Map<String, Object>> cleanupAllBoundingBoxAnnotations() {
+        try {
+            // Get stats before cleanup
+            java.util.Map<String, Object> statsBefore = inspectionService.getBoundingBoxAnnotationStats();
+            
+            // Perform cleanup
+            int updatedCount = inspectionService.cleanupAllBoundingBoxAnnotations();
+            
+            // Prepare response
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("message", "Successfully cleaned up bounding box annotations for all inspections");
+            response.put("inspectionsUpdated", updatedCount);
+            response.put("statisticsBeforeCleanup", statsBefore);
+            response.put("cleanupTimestamp", LocalDateTime.now());
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            java.util.Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Failed to cleanup bounding box annotations");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Clean up bounding box annotations for a specific transformer
+     * POST /api/inspections/cleanup/transformer/{transformerNo}/annotations
+     */
+    @PostMapping("/cleanup/transformer/{transformerNo}/annotations")
+    public ResponseEntity<java.util.Map<String, Object>> cleanupBoundingBoxAnnotationsByTransformer(
+            @PathVariable("transformerNo") String transformerNo) {
+        try {
+            // Get inspections with changes for this transformer before cleanup
+            List<InspectionDTO> inspectionsBefore = inspectionService.getInspectionsWithBoundingBoxChangesByTransformer(transformerNo);
+            
+            // Perform cleanup
+            int updatedCount = inspectionService.cleanupBoundingBoxAnnotationsByTransformer(transformerNo);
+            
+            // Prepare response
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("message", "Successfully cleaned up bounding box annotations for transformer: " + transformerNo);
+            response.put("transformerNo", transformerNo);
+            response.put("inspectionsUpdated", updatedCount);
+            response.put("inspectionsWithAnnotationsBeforeCleanup", inspectionsBefore.size());
+            response.put("cleanupTimestamp", LocalDateTime.now());
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            java.util.Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Failed to cleanup bounding box annotations for transformer: " + transformerNo);
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Clean up bounding box annotations for a specific inspection
+     * POST /api/inspections/{inspectionNo}/cleanup/annotations
+     */
+    @PostMapping("/{inspectionNo}/cleanup/annotations")
+    public ResponseEntity<java.util.Map<String, Object>> cleanupBoundingBoxAnnotationsById(
+            @PathVariable("inspectionNo") Long inspectionNo) {
+        try {
+            // Check if inspection exists and get details before cleanup
+            Optional<InspectionDTO> inspectionBefore = inspectionService.getInspectionById(inspectionNo);
+            if (inspectionBefore.isEmpty()) {
+                java.util.Map<String, Object> errorResponse = new java.util.HashMap<>();
+                errorResponse.put("error", "Inspection not found");
+                errorResponse.put("inspectionNo", inspectionNo);
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+            }
+            
+            // Perform cleanup
+            int updatedCount = inspectionService.cleanupBoundingBoxAnnotationsById(inspectionNo);
+            
+            // Prepare response
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("message", "Successfully cleaned up bounding box annotations for inspection: " + inspectionNo);
+            response.put("inspectionNo", inspectionNo);
+            response.put("inspectionsUpdated", updatedCount);
+            response.put("cleanupTimestamp", LocalDateTime.now());
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            java.util.Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Failed to cleanup bounding box annotations for inspection: " + inspectionNo);
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Get statistics about bounding box annotations
+     * GET /api/inspections/bounding-box-stats
+     */
+    @GetMapping("/bounding-box-stats")
+    public ResponseEntity<java.util.Map<String, Object>> getBoundingBoxAnnotationStats() {
+        try {
+            java.util.Map<String, Object> stats = inspectionService.getBoundingBoxAnnotationStats();
+            return new ResponseEntity<>(stats, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

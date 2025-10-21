@@ -2,6 +2,7 @@ package com.example.transformerthermalinspector.repository;
 
 import com.example.transformerthermalinspector.dao.Inspection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -40,4 +41,19 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     // Find inspections with bounding box changes for a specific transformer
     @Query("SELECT i FROM Inspection i WHERE i.transformerNo = :transformerNo AND (i.editedOrManuallyAddedBoxes IS NOT NULL OR i.deletedBoundingBoxes IS NOT NULL)")
     List<Inspection> findInspectionsWithBoundingBoxChangesByTransformer(@Param("transformerNo") String transformerNo);
+    
+    // Clean up edited and deleted bounding box data for all inspections (after model retraining)
+    @Modifying
+    @Query("UPDATE Inspection i SET i.editedOrManuallyAddedBoxes = NULL, i.deletedBoundingBoxes = NULL")
+    int cleanupAllBoundingBoxAnnotations();
+    
+    // Clean up edited and deleted bounding box data for a specific transformer
+    @Modifying
+    @Query("UPDATE Inspection i SET i.editedOrManuallyAddedBoxes = NULL, i.deletedBoundingBoxes = NULL WHERE i.transformerNo = :transformerNo")
+    int cleanupBoundingBoxAnnotationsByTransformer(@Param("transformerNo") String transformerNo);
+    
+    // Clean up edited and deleted bounding box data for a specific inspection
+    @Modifying
+    @Query("UPDATE Inspection i SET i.editedOrManuallyAddedBoxes = NULL, i.deletedBoundingBoxes = NULL WHERE i.inspectionNo = :inspectionNo")
+    int cleanupBoundingBoxAnnotationsById(@Param("inspectionNo") Long inspectionNo);
 }
