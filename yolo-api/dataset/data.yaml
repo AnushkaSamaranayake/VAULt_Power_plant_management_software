@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['Faulty', 'Normal', 'Potentially Faulty']
+
+roboflow:
+  workspace: transformer-anomaly-detection
+  project: transformer_anomalie_detection-tsqsj
+  version: 4
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/transformer-anomaly-detection/transformer_anomalie_detection-tsqsj/dataset/4
