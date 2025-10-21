@@ -14,8 +14,10 @@ CLEANUP_API_ENDPOINT = '/api/inspections/cleanup/all-annotations'
 
 if torch.cuda.is_available():
     retrain_device = 'cuda'
+    DEVICE = torch.device('cuda')
 else:
     retrain_device = 'cpu'
+    DEVICE = torch.device('cpu')
 
 def cleanup_bounding_box_annotations():
     try:
@@ -80,17 +82,15 @@ def retrain_model():
     
     if retrain_device == 'cuda':
         batch_size = 16
-        device = 0
     elif retrain_device == 'cpu':
         batch_size = 4
-        device = 'cpu'
     
     model.train(
         data=DATA_YAML,
         epochs=10,
         batch=batch_size,
         imgsz=640,
-        device=device,
+        device=DEVICE,
         name=run_name,
         project=TRAIN_DIR,
         verbose=True,
