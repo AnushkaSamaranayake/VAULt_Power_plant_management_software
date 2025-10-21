@@ -24,6 +24,9 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
     const [boxNotes, setBoxNotes] = useState({}); // Store notes for each box
     const [expandedNotes, setExpandedNotes] = useState({}); // Track which note sections are expanded
+    // Track deleted entries' metadata (geometry + note) so we can persist comment after removal
+    const [deletedMeta, setDeletedMeta] = useState([]); // { box, class, confidence, note }
+    const [deletedBoxes, setDeletedBoxes] = useState([]); // Currently deleted boxes (loaded from backend)
 
     const MIN_ZOOM = 0.5;
     const MAX_ZOOM = 3;
@@ -41,6 +44,76 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
             }
         }
     }, [editedBoxes, visibleBoxes, editingBoxIndex, zoomLevel, panOffset]);
+
+    // Load deleted boxes from backend
+    useEffect(() => {
+        if (inspection?.deletedBoundingBoxes) {
+            try {
+                const deleted = JSON.parse(inspection.deletedBoundingBoxes);
+                setDeletedBoxes(deleted || []);
+            } catch (err) {
+                console.error('Failed to parse deleted boxes:', err);
+                setDeletedBoxes([]);
+            }
+        }
+    }, [inspection?.deletedBoundingBoxes]);
+
+    // Helper: parse AI predictions and existing edited records
+    const parseAiPredictions = () => {
+        try {
+            if (!inspection?.aiBoundingBoxes) return [];
+            const ai = JSON.parse(inspection.aiBoundingBoxes);
+            return Array.isArray(ai?.predictions) ? ai.predictions : [];
+        } catch { return []; }
+    };
+
+    const parseExistingEdited = () => {
+        try {
+            if (!inspection?.editedOrManuallyAddedBoxes) return [];
+            const ed = JSON.parse(inspection.editedOrManuallyAddedBoxes);
+            return Array.isArray(ed) ? ed : [];
+        } catch { return []; }
+    };
+
+    const boxesCloseAbs = (a, b, eps = 2.0) => {
+        if (!a || !b) return false;
+        return Math.abs(a[0]-b[0]) < eps && Math.abs(a[1]-b[1]) < eps && Math.abs(a[2]-b[2]) < eps && Math.abs(a[3]-b[3]) < eps;
+    };
+
+    // Sync editedBoxes with boundingBoxes prop (enrich with origin metadata)
+    useEffect(() => {
+        const aiPreds = parseAiPredictions();
+        const existingEdited = parseExistingEdited();
+        const enriched = (boundingBoxes || []).map((p) => {
+            // Try to find AI origin
+            const matchedAi = aiPreds.find(ai => boxesCloseAbs(ai.box, p.box, 2.0));
+            if (matchedAi) {
+                return { ...p, source: 'ai', originBox: matchedAi.box, prevType: 'ai' };
+            }
+            // Try to find existing edited originBox by matching current box to previous edited box
+            const matchedEdited = existingEdited.find(ed => ed.box && boxesCloseAbs(ed.box, p.box, 2.0));
+            if (matchedEdited) {
+                const typeLower = (matchedEdited.type ? String(matchedEdited.type).toLowerCase() : (matchedEdited.originalBox ? 'edited' : 'added'));
+                return { ...p, source: 'edited', originBox: matchedEdited.originalBox || matchedEdited.box, prevType: typeLower };
+            }
+            // Default to manual/edited with itself as origin
+            return { ...p, source: 'edited', originBox: p.box, prevType: 'added' };
+        });
+        setEditedBoxes(enriched);
+        setVisibleBoxes(enriched.map((_, idx) => idx));
+        // Seed notes from incoming predictions (if any comments are present)
+        const initialNotes = {};
+        enriched.forEach((p, idx) => {
+            if (p.comment && typeof p.comment === 'string' && p.comment.trim() !== '') {
+                initialNotes[idx] = p.comment;
+            }
+        });
+        setBoxNotes(initialNotes);
+        // Expand note sections that already have content
+        const initialExpanded = {};
+        Object.keys(initialNotes).forEach(k => { initialExpanded[k] = true; });
+        setExpandedNotes(initialExpanded);
+    }, [boundingBoxes, inspection?.aiBoundingBoxes, inspection?.editedOrManuallyAddedBoxes]);
 
     const handleZoomIn = () => {
         setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
@@ -119,6 +192,15 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
 
     const confirmDelete = () => {
         if (deleteIndex === null) return;
+        // Capture deletion metadata BEFORE removing
+        const toDelete = editedBoxes[deleteIndex];
+        const deleteNote = boxNotes[deleteIndex] || '';
+        setDeletedMeta(prev => ([...prev, {
+            box: toDelete.box,
+            class: toDelete.class,
+            confidence: toDelete.confidence,
+            note: deleteNote,
+        }]));
 
         // Remove the box from editedBoxes
         setEditedBoxes(prev => prev.filter((_, idx) => idx !== deleteIndex));
@@ -396,35 +478,225 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
         setIsSaving(true);
         setSaveError(null);
 
+        // Helper distance and closeness for boxes
+        const boxDistance = (a, b) => Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[2]-b[2]) + Math.abs(a[3]-b[3]);
+        const boxesClose = (a, b, eps = 2.0) => boxDistance(a, b) < eps;
+        const boxMatchThreshold = (o) => {
+            // Dynamic threshold based on box size to better capture large-but-related edits
+            const w = Math.abs(o[2] - o[0]);
+            const h = Math.abs(o[3] - o[1]);
+            return Math.max(10.0, 1.5 * (w + h));
+        };
+
         try {
-            // Prepare the data structure to match backend format
-            const updatedBoundingBoxes = {
-                predictions: editedBoxes
+            const original = boundingBoxes || [];
+            const current = editedBoxes || [];
+
+            let aiBoxCount = 0;
+            if (inspection?.aiBoundingBoxes) {
+                try {
+                    const aiData = JSON.parse(inspection.aiBoundingBoxes);
+                    if (aiData && Array.isArray(aiData.predictions)) {
+                        aiBoxCount = aiData.predictions.length;
+                    }
+                } catch (err) {
+                    console.warn('Failed to parse AI bounding boxes while determining deletion origin:', err);
+                }
+            }
+
+            // Build lists via metadata instead of pure geometry
+            const usedOriginal = new Array(original.length).fill(false);
+            const usedCurrent = new Array(current.length).fill(false);
+
+            const nowIso = new Date().toISOString();
+            const userId = 'ui-user';
+
+            const added = [];
+            const edited = [];
+            const deleted = [];
+
+            // Construct edits/additions from enriched metadata
+            current.forEach((c, idx) => {
+                const note = (boxNotes[idx] || '');
+                if (c.source === 'ai') {
+                    // Moved vs unchanged AI prediction
+                    if (!boxesCloseAbs(c.box, c.originBox, 2.0)) {
+                        edited.push({
+                            type: 'edited', userId, timestamp: nowIso,
+                            comment: note,
+                            originalBox: c.originBox, box: c.box, class: c.class, confidence: c.confidence,
+                        });
+                    }
+                } else if (c.source === 'edited') {
+                    // Preserve prior type if it existed in DB
+                    const prior = c.prevType || 'added';
+                    if (prior === 'edited' && c.originBox && !boxesCloseAbs(c.box, c.originBox, 2.0)) {
+                        // Remains an edit of its original AI box
+                        edited.push({
+                            type: 'edited', userId, timestamp: nowIso,
+                            comment: note,
+                            originalBox: c.originBox, box: c.box, class: c.class, confidence: c.confidence,
+                        });
+                    } else if (prior === 'edited' && c.originBox && boxesCloseAbs(c.box, c.originBox, 2.0)) {
+                        // No new change to persist for an edited item
+                    } else {
+                        // Added (new manual or previously manual)
+                        added.push({
+                            type: 'added', userId, timestamp: nowIso,
+                            comment: note,
+                            box: c.box, class: c.class, confidence: c.confidence,
+                        });
+                    }
+                } else {
+                    // Fallback: if classification metadata is missing, treat as added
+                    added.push({
+                        type: 'added', userId, timestamp: nowIso,
+                        comment: note,
+                        box: c.box, class: c.class, confidence: c.confidence,
+                    });
+                }
+            });
+
+            // Deleted: original not matched
+            // Helper: find note for a deleted original box by matching geometry to captured deletedMeta
+            const findDeletedNote = (box) => {
+                let bestIdx = -1;
+                let bestD = Number.POSITIVE_INFINITY;
+                for (let k = 0; k < deletedMeta.length; k++) {
+                    const dm = deletedMeta[k];
+                    const d = boxDistance(box, dm.box);
+                    if (d < bestD) { bestD = d; bestIdx = k; }
+                }
+                if (bestIdx !== -1) {
+                    return deletedMeta[bestIdx].note || '';
+                }
+                return '';
             };
 
-            // Send PUT request to update bounding boxes
-            const response = await axios.put(
-                `http://localhost:8080/api/inspections/${inspection.inspectionNo}/bounding-boxes`,
-                updatedBoundingBoxes,
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+            // Deleted: AI predictions that are no longer present as current items with source 'ai'
+            // Any current box that originated from an AI prediction (including edited ones)
+            const representedAiOrigins = new Set(
+                current
+                    .filter(c => c.originBox)
+                    .map(c => JSON.stringify(c.originBox))
+            );
+            // Collect AI originals from inspection.aiBoundingBoxes strictly (not the merged original)
+            const aiOriginals = parseAiPredictions();
+            aiOriginals.forEach((o) => {
+                const key = JSON.stringify(o.box);
+                if (!representedAiOrigins.has(key)) {
+                    deleted.push({
+                        type: 'deleted', userId, timestamp: nowIso,
+                        comment: findDeletedNote(o.box),
+                        box: o.box, class: o.class, confidence: o.confidence,
+                        deletedFrom: 'ai',
+                    });
                 }
+            });
+
+            // Ensure we don't double-account: remove any deleted that overlaps with edited entries
+            const deletedFiltered = deleted.filter((del) => {
+                const delBox = del.box;
+                // If any edited entry references this box (either as originalBox or new box), don't keep as deleted
+                for (const ed of edited) {
+                    if (ed.originalBox && boxesClose(delBox, ed.originalBox, 2.0)) return false;
+                    if (ed.box && boxesClose(delBox, ed.box, 2.0)) return false;
+                }
+                return true;
+            });
+
+            const payload = {
+                editedOrManuallyAddedBoxes: JSON.stringify([...added, ...edited]),
+                deletedBoundingBoxes: JSON.stringify(deletedFiltered),
+            };
+
+            const response = await axios.post(
+                `http://localhost:8080/api/inspections/${inspection.inspectionNo}/annotations`,
+                payload,
+                { headers: { 'Content-Type': 'application/json' } }
             );
 
-            console.log('Bounding boxes saved successfully:', response.data);
-            
-            // Call the onSave callback to refresh inspection data
-            if (onSave) {
-                await onSave();
-            }
-            
-            // Close the modal
+            console.log('Annotations saved successfully:', response.data);
+
+            if (onSave) await onSave();
             onClose();
         } catch (error) {
-            console.error('Failed to save bounding boxes:', error);
+            console.error('Failed to save annotations:', error);
             setSaveError(error.response?.data?.message || 'Failed to save changes. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleRecoverBox = async (deletedBox) => {
+        try {
+            setIsSaving(true);
+            setSaveError(null);
+
+            // Determine destination column (prefer backend metadata, then fall back)
+            let destination = deletedBox.deletedFrom ? deletedBox.deletedFrom.toLowerCase() : null;
+            if (!destination || destination.trim() === '') {
+                // Fallback: check if this box matches current AI predictions
+                const originalAiBoxes = boundingBoxes || [];
+                const tolerance = 2.0;
+                const isFromAI = originalAiBoxes.some(aiBox => (
+                    Math.abs(aiBox.box[0] - deletedBox.box[0]) < tolerance &&
+                    Math.abs(aiBox.box[1] - deletedBox.box[1]) < tolerance &&
+                    Math.abs(aiBox.box[2] - deletedBox.box[2]) < tolerance &&
+                    Math.abs(aiBox.box[3] - deletedBox.box[3]) < tolerance
+                ));
+                destination = isFromAI ? 'ai' : 'edited';
+            }
+
+            if (destination === 'manual') {
+                destination = 'edited';
+            }
+
+            const payload = {
+                box: deletedBox.box,
+                destination: destination
+            };
+
+            await axios.post(
+                `http://localhost:8080/api/inspections/${inspection.inspectionNo}/annotations/recover`,
+                payload,
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            console.log('Box recovered successfully to:', destination);
+
+            // Optimistically remove recovered entry from local deleted list
+            setDeletedBoxes(prev => prev.filter(entry => {
+                const tolerance = 0.5;
+                return Math.abs(entry.box[0] - deletedBox.box[0]) > tolerance ||
+                    Math.abs(entry.box[1] - deletedBox.box[1]) > tolerance ||
+                    Math.abs(entry.box[2] - deletedBox.box[2]) > tolerance ||
+                    Math.abs(entry.box[3] - deletedBox.box[3]) > tolerance;
+            }));
+
+            // Refresh inspection data to update UI
+            if (onSave) await onSave();
+            
+            // Reload deleted boxes from latest inspection snapshot
+            const response = await axios.get(`http://localhost:8080/api/inspections/${inspection.inspectionNo}`);
+            if (response.data?.deletedBoundingBoxes) {
+                const deleted = JSON.parse(response.data.deletedBoundingBoxes);
+                setDeletedBoxes(deleted || []);
+            } else {
+                setDeletedBoxes([]);
+            }
+
+            // Remove recovered entry from cached deleted metadata
+            setDeletedMeta(prev => prev.filter(entry => {
+                const tolerance = 0.5;
+                return Math.abs(entry.box[0] - deletedBox.box[0]) > tolerance ||
+                    Math.abs(entry.box[1] - deletedBox.box[1]) > tolerance ||
+                    Math.abs(entry.box[2] - deletedBox.box[2]) > tolerance ||
+                    Math.abs(entry.box[3] - deletedBox.box[3]) > tolerance;
+            }));
+        } catch (error) {
+            console.error('Failed to recover box:', error);
+            setSaveError(error.response?.data?.message || 'Failed to recover box. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -458,7 +730,9 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                 centerY + defaultHeight / 2
             ],
             class: selectedClass,
-            confidence: 1.0 // Default confidence for manually added boxes
+            confidence: 1.0, // Default confidence for manually added boxes
+            source: 'edited', // treat as manual/edited origin for save classification
+            prevType: 'added' // ensure it persists as an added item
         };
 
         // Add the new box to editedBoxes
@@ -735,6 +1009,63 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                         </div>
                     </div>
 
+                    {/* Deleted Boxes Section */}
+                    {deletedBoxes.length > 0 && (
+                        <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                            <h3 className="font-semibold text-red-700 mb-3">
+                                Deleted Boxes ({deletedBoxes.length})
+                            </h3>
+                            <p className="text-xs text-red-600 mb-3">
+                                These boxes have been deleted but can be recovered. Click "Recover" to restore a box.
+                            </p>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {deletedBoxes.map((box, idx) => {
+                                    const className = box.class === 0 ? 'Faulty' : box.class === 1 ? 'Normal' : 'Potentially Faulty';
+                                    const colorClass = box.class === 0 ? 'text-red-600' : box.class === 1 ? 'text-green-600' : 'text-orange-600';
+                                    const bgColor = box.class === 0 ? 'bg-red-600' : box.class === 1 ? 'bg-green-600' : 'bg-orange-600';
+                                    
+                                    return (
+                                        <div key={idx} className="bg-white rounded-lg border border-red-200 p-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                            Deleted #{idx + 1}
+                                                        </span>
+                                                        <span className={`font-medium ${colorClass} text-sm`}>
+                                                            {className}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600">
+                                                        Confidence: {(box.confidence * 100).toFixed(1)}%
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        Box: [{box.box.map(v => v.toFixed(0)).join(', ')}]
+                                                    </p>
+                                                    {box.comment && (
+                                                        <p className="text-xs text-gray-600 mt-1 italic">
+                                                            Note: {box.comment}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-xs text-gray-400 mt-1">
+                                                        Deleted: {new Date(box.timestamp).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRecoverBox(box)}
+                                                    disabled={isSaving}
+                                                    className="ml-3 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Recover
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="flex items-center justify-end space-x-3 pt-4 border-t">
                         <button
@@ -866,7 +1197,7 @@ const EditBoundingBoxesPopup = ({ inspection, boundingBoxes, onClose, onSave }) 
                         </div>
                         
                         <p className="text-sm text-gray-600 mb-6">
-                            This action cannot be undone. The bounding box will be permanently removed when you save changes.
+                            The bounding box will be moved to the deleted section. You can recover it later if needed.
                         </p>
 
                         <div className="flex items-center justify-end space-x-3">

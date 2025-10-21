@@ -22,20 +22,36 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         );
     };
 
-    // Parse bounding boxes when inspection data changes
+    // Fetch effective bounding boxes (AI + edited + added - deleted) when inspection changes
     useEffect(() => {
-        if (inspection?.aiBoundingBoxes) {
-            try {
-                const parsed = JSON.parse(inspection.aiBoundingBoxes);
-                setBoundingBoxes(parsed.predictions || []);
-            } catch (error) {
-                console.error('Failed to parse AI bounding boxes:', error);
+        const fetchEffectiveBoxes = async () => {
+            if (inspection?.inspectionNo) {
+                try {
+                    const response = await axios.get(`http://localhost:8080/api/inspections/${inspection.inspectionNo}/effective-boxes`);
+                    const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+                    setBoundingBoxes((data && Array.isArray(data.predictions)) ? data.predictions : []);
+                } catch (error) {
+                    console.error('Failed to fetch effective bounding boxes:', error);
+                    // Fallback to parsing ai_bounding_boxes
+                    if (inspection?.aiBoundingBoxes) {
+                        try {
+                            const parsed = JSON.parse(inspection.aiBoundingBoxes);
+                            setBoundingBoxes(parsed.predictions || []);
+                        } catch (e) {
+                            console.error('Failed to parse AI bounding boxes:', e);
+                            setBoundingBoxes([]);
+                        }
+                    } else {
+                        setBoundingBoxes([]);
+                    }
+                }
+            } else {
                 setBoundingBoxes([]);
             }
-        } else {
-            setBoundingBoxes([]);
-        }
-    }, [inspection?.aiBoundingBoxes]);
+        };
+        
+        fetchEffectiveBoxes();
+    }, [inspection?.inspectionNo, inspection?.aiBoundingBoxes, inspection?.editedOrManuallyAddedBoxes, inspection?.deletedBoundingBoxes]);
     
     // Helper function to check AI status from state field
     const getAiStatus = () => {
@@ -47,20 +63,31 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         return null;
     };
 
-    // Draw bounding boxes on canvas
+    // Draw bounding boxes on canvas and keep in sync with layout changes
     useEffect(() => {
-        if (showBoxes && boundingBoxes.length > 0 && imageRef.current && canvasRef.current) {
-            const image = imageRef.current;
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
+        const image = imageRef.current;
+        const canvas = canvasRef.current;
+        if (!image || !canvas) return;
 
-            // Wait for image to load
-            if (image.complete) {
-                drawBoundingBoxes();
-            } else {
-                image.onload = drawBoundingBoxes;
-            }
+        const doDraw = () => drawBoundingBoxes();
+
+        if (image.complete) {
+            doDraw();
+        } else {
+            image.onload = doDraw;
         }
+
+        // Observe size changes of the image element
+        const ro = new ResizeObserver(() => doDraw());
+        try { ro.observe(image); } catch (_) {}
+
+        const onWindowResize = () => doDraw();
+        window.addEventListener('resize', onWindowResize);
+
+        return () => {
+            try { ro.disconnect(); } catch (_) {}
+            window.removeEventListener('resize', onWindowResize);
+        };
     }, [showBoxes, boundingBoxes]);
 
     const drawBoundingBoxes = () => {
@@ -68,11 +95,12 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        // Get the displayed size of the image
-        const displayedWidth = image.width;
-        const displayedHeight = image.height;
+        // Get sizes; bail if not ready
+        const displayedWidth = image.clientWidth || image.width;
+        const displayedHeight = image.clientHeight || image.height;
         const naturalWidth = image.naturalWidth;
         const naturalHeight = image.naturalHeight;
+        if (!displayedWidth || !displayedHeight || !naturalWidth || !naturalHeight) return;
 
         // Calculate scaling ratios
         const scaleX = displayedWidth / naturalWidth;
@@ -214,6 +242,11 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         await onRefresh();
     };
 
+    // Open edit popup with effective boxes
+    const handleEditBoundingBoxes = () => {
+        setShowEditPopup(true);
+    };
+
     if (!inspection?.maintenanceImagePath) {
         return null;
     }
@@ -310,6 +343,50 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                 </div>
             )}
 
+            {/* Analysis Image with Overlay (merged effective boxes) */}
+            {getAiStatus() === 'completed' && (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-700">Analysis Image</h3>
+                        <div className="flex items-center gap-2">
+                            <label className="flex items-center space-x-1 cursor-pointer text-xs">
+                                <input
+                                    type="checkbox"
+                                    checked={showBoxes}
+                                    onChange={(e) => setShowBoxes(e.target.checked)}
+                                    className="w-3 h-3 text-blue-600 rounded"
+                                />
+                                <span className="text-gray-600">Show Boxes</span>
+                            </label>
+                            <button
+                                onClick={handleEditBoundingBoxes}
+                                className="px-3 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700"
+                            >
+                                Edit Bounding Boxes
+                            </button>
+                        </div>
+                    </div>
+                    <div className="relative rounded-lg border shadow-sm overflow-hidden">
+                        <img
+                            ref={imageRef}
+                            src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                            alt="AI Analysis"
+                            className="w-full h-auto object-contain block"
+                            onLoad={drawBoundingBoxes}
+                            crossOrigin="anonymous"
+                            style={{ maxHeight: '420px' }}
+                        />
+                        {boundingBoxes.length > 0 && (
+                            <canvas
+                                ref={canvasRef}
+                                className="absolute top-0 left-0 pointer-events-none"
+                                style={{ display: showBoxes ? 'block' : 'none' }}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Analysis Summary */}
             {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
                 <>
@@ -327,7 +404,7 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                             </div>
                         </div>
                         <button
-                            onClick={() => setShowEditPopup(true)}
+                            onClick={handleEditBoundingBoxes}
                             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             Edit Bounding Boxes
@@ -355,6 +432,15 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                                 Error {idx + 1}
                                             </span>
                                             <span className={`font-medium ${colorClass} text-sm`}>{className}</span>
+                                            {/* Show type badge and note hint inline for visibility */}
+                                            {pred.type && pred.type !== 'ai' && (
+                                                <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-semibold">
+                                                    {String(pred.type).toUpperCase()}
+                                                </span>
+                                            )}
+                                            {pred.comment && (
+                                                <span className="ml-1 text-[11px] text-gray-500">📝</span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-600 text-sm">
@@ -373,6 +459,35 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                         <div className="border-t border-gray-200 bg-white p-3">
                                             <h4 className="text-xs font-semibold text-gray-700 mb-2">Change Log (Latest First):</h4>
                                             <div className="space-y-2">
+                                                {/* Annotation from edits/additions if present */}
+                                                {(pred.type && pred.type !== 'ai') && (
+                                                    <div className="flex items-start gap-2 text-xs">
+                                                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-1 flex-shrink-0"></div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-medium text-gray-700">
+                                                                    {String(pred.type).toUpperCase()} by {pred.userId ? String(pred.userId) : 'user'}
+                                                                </span>
+                                                                {pred.timestamp && (
+                                                                    <span className="text-gray-500">
+                                                                        {new Date(pred.timestamp).toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {pred.comment && (
+                                                                <p className="text-gray-600 mt-1">{pred.comment}</p>
+                                                            )}
+                                                            {pred.originalBox && (
+                                                                <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                    <p className="font-medium text-gray-700 mb-1">Original Box:</p>
+                                                                    <p className="text-gray-600">
+                                                                        X1: {pred.originalBox[0].toFixed(2)}, Y1: {pred.originalBox[1].toFixed(2)}, X2: {pred.originalBox[2].toFixed(2)}, Y2: {pred.originalBox[3].toFixed(2)}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {/* Placeholder for future entries - these will appear above */}
                                                 {/* Future modifications will be inserted here at the top */}
                                                 
@@ -438,9 +553,9 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
             {showEditPopup && (
                 <EditBoundingBoxesPopup
                     inspection={inspection}
-                    boundingBoxes={boundingBoxes}
+                    boundingBoxes={boundingBoxes} // Always pass merged effective boxes
                     onClose={() => setShowEditPopup(false)}
-                    onSave={handleSaveCallback}
+                    onSave={onRefresh}
                 />
             )}
         </div>
