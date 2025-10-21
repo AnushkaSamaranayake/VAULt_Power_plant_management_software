@@ -2,11 +2,35 @@ from  ultralytics import YOLO
 import cv2 as cv
 import numpy as np
 import os
+import threading
+import time
 
+MODEL_PATH = "models/best.pt"
 #load the model
-model = YOLO("models/best.pt")
+model = YOLO(MODEL_PATH)
 # Force CPU inference to avoid CUDA compatibility issues
 model.to('cpu')
+last_modified_time = os.path.getmtime(MODEL_PATH)
+
+def watch_model():
+    global model, last_modified_time
+    while True:
+        modified = os.path.getmtime(MODEL_PATH)
+        if modified != last_modified_time:
+            print("Model weights updated. Reloading model...")
+            model = YOLO(MODEL_PATH)
+            model.to('cpu')
+            last_modified_time = modified
+        time.sleep(60) # Check every 60 seconds
+
+threading.Thread(target=watch_model, daemon=True).start()
+
+def reload_model():
+    global model,last_modified_time
+    model = YOLO(MODEL_PATH)
+    model.to('cpu')
+    last_modified_time = os.path.getmtime(MODEL_PATH)
+    print("Model reloaded manually.")
 
 #inference function
 def run_inference(image_bytes: bytes, conf_threshold: float = 0.25):
