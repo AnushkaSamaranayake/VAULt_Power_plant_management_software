@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import axios from 'axios';
 import EditBoundingBoxesPopup from './EditBoundingBoxesPopup';
 
@@ -247,6 +247,87 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         setShowEditPopup(true);
     };
 
+    // Generate and download a change log as a text file
+    const handleExportChangeLog = () => {
+        try {
+            const lines = [];
+            const headerDate = inspection?.maintenanceImageUploadDateAndTime
+                ? new Date(inspection.maintenanceImageUploadDateAndTime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : '';
+
+            const safeStr = (v) => (v === undefined || v === null) ? '' : String(v);
+            const fmtBox = (box) => box && box.length === 4
+                ? `X1: ${box[0].toFixed(2)}, Y1: ${box[1].toFixed(2)}, X2: ${box[2].toFixed(2)}, Y2: ${box[3].toFixed(2)} (W: ${(box[2]-box[0]).toFixed(2)}px, H: ${(box[3]-box[1]).toFixed(2)}px)`
+                : '';
+
+            lines.push(`Transformer: ${safeStr(inspection?.transformerNo)}`);
+            lines.push(`Inspection #: ${safeStr(inspection?.inspectionNo)}`);
+            if (headerDate) lines.push(`AI Analysis Date: ${headerDate}`);
+            lines.push('');
+            lines.push(`Detections (${boundingBoxes.length})`);
+            lines.push('');
+
+            const classNameOf = (c) => c === 0 ? 'Faulty' : (c === 1 ? 'Normal' : 'Potentially Faulty');
+
+            boundingBoxes.forEach((pred, idx) => {
+                lines.push(`Error ${idx + 1} - ${classNameOf(pred.class)} - Confidence: ${(pred.confidence * 100).toFixed(1)}%`);
+
+                // User annotation entry
+                if (pred.type && pred.type !== 'ai') {
+                    const who = pred.userId ? String(pred.userId) : 'user';
+                    const when = pred.timestamp ? new Date(pred.timestamp).toLocaleString() : '';
+                    const note = pred.comment ? String(pred.comment) : '';
+                    lines.push(`  ${String(pred.type).toUpperCase()} by ${who}${when ? ` @ ${when}` : ''}`);
+                    if (note) lines.push(`  Note: ${note}`);
+                    if (pred.originalBox) lines.push(`  Original Box: ${fmtBox(pred.originalBox)}`);
+                    if (pred.box) lines.push(`  ${pred.type === 'added' ? 'Added' : 'Edited'} Box: ${fmtBox(pred.box)}`);
+                }
+
+                // AI detection entry (only for AI origin or edited-from-AI)
+                if ((!pred.type || pred.type === 'ai') || (pred.type === 'edited' && pred.originalBox)) {
+                    const aiBox = (pred.type === 'edited' && pred.originalBox) ? pred.originalBox : pred.box;
+                    lines.push('  Detected by AI');
+                    if (aiBox) lines.push(`  AI Box: ${fmtBox(aiBox)}`);
+                }
+
+                lines.push('');
+            });
+
+            // Include deleted boxes if present on inspection
+            try {
+                if (inspection?.deletedBoundingBoxes) {
+                    const del = typeof inspection.deletedBoundingBoxes === 'string' ? JSON.parse(inspection.deletedBoundingBoxes) : inspection.deletedBoundingBoxes;
+                    if (Array.isArray(del) && del.length) {
+                        lines.push('Deleted Boxes');
+                        del.forEach((d, i) => {
+                            const note = d?.comment ? String(d.comment) : '';
+                            const who = d?.userId ? String(d.userId) : 'user';
+                            const when = d?.timestamp ? new Date(d.timestamp).toLocaleString() : '';
+                            lines.push(`  ${i + 1}. Deleted by ${who}${when ? ` @ ${when}` : ''}`);
+                            if (note) lines.push(`     Note: ${note}`);
+                            if (d?.box) lines.push(`     Box: ${fmtBox(d.box)}`);
+                        });
+                        lines.push('');
+                    }
+                }
+            } catch (_) { /* ignore parse issues for export */ }
+
+            const content = lines.join('\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const filename = `inspection-${safeStr(inspection?.inspectionNo)}-change-log.txt`;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to export change log:', err);
+        }
+    };
+
     if (!inspection?.maintenanceImagePath) {
         return null;
     }
@@ -403,12 +484,22 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleEditBoundingBoxes}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            Edit Bounding Boxes
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleExportChangeLog}
+                                className="px-3 py-2 bg-white text-blue-700 border border-blue-300 text-sm rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1"
+                                title="Export change log as text"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export Change Log
+                            </button>
+                            <button
+                                onClick={handleEditBoundingBoxes}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Edit Bounding Boxes
+                            </button>
+                        </div>
                     </div>
 
                     {/* Detection Details */}
@@ -479,9 +570,24 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                                             )}
                                                             {pred.originalBox && (
                                                                 <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                                                                    <p className="font-medium text-gray-700 mb-1">Original Box:</p>
+                                                                    <p className="font-medium text-gray-700 mb-1">Original Box Coordinates:</p>
                                                                     <p className="text-gray-600">
                                                                         X1: {pred.originalBox[0].toFixed(2)}, Y1: {pred.originalBox[1].toFixed(2)}, X2: {pred.originalBox[2].toFixed(2)}, Y2: {pred.originalBox[3].toFixed(2)}
+                                                                    </p>
+                                                                    <p className="text-gray-500 mt-1">
+                                                                        Width: {(pred.originalBox[2] - pred.originalBox[0]).toFixed(2)}px, Height: {(pred.originalBox[3] - pred.originalBox[1]).toFixed(2)}px
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                            {/* Show the resulting box for edited/added entries */}
+                                                            {pred.box && (
+                                                                <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                    <p className="font-medium text-gray-700 mb-1">{pred.type === 'added' ? 'Added Box Coordinates:' : 'Edited Box Coordinates:'}</p>
+                                                                    <p className="text-gray-600">
+                                                                        X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                                    </p>
+                                                                    <p className="text-gray-500 mt-1">
+                                                                        Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
                                                                     </p>
                                                                 </div>
                                                             )}
@@ -491,38 +597,46 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
                                                 {/* Placeholder for future entries - these will appear above */}
                                                 {/* Future modifications will be inserted here at the top */}
                                                 
-                                                {/* AI Detection Entry - Original detection */}
-                                                <div className="flex items-start gap-2 text-xs">
-                                                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="font-medium text-gray-700">
-                                                                Detected by AI
-                                                            </span>
-                                                            <span className="text-gray-500">
-                                                                {new Date(inspection.dateOfInspection).toLocaleDateString('en-US', { 
-                                                                    year: 'numeric', 
-                                                                    month: 'short', 
-                                                                    day: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-gray-600 mt-1">
-                                                            AI analysis identified this as <span className={colorClass}>{className}</span> with {(pred.confidence * 100).toFixed(1)}% confidence
-                                                        </p>
-                                                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                                                            <p className="font-medium text-gray-700 mb-1">Bounding Box Coordinates:</p>
-                                                            <p className="text-gray-600">
-                                                                X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                {/* AI Detection Entry - only for AI-origin or edited-from-AI */}
+                                                {(!pred.type || pred.type === 'ai' || (pred.type === 'edited' && pred.originalBox)) && (
+                                                    <div className="flex items-start gap-2 text-xs">
+                                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-medium text-gray-700">
+                                                                    Detected by AI
+                                                                </span>
+                                                                <span className="text-gray-500">
+                                                                    {(() => {
+                                                                        const dt = inspection?.maintenanceImageUploadDateAndTime;
+                                                                        const d = dt ? new Date(dt) : null;
+                                                                        return (d && !isNaN(d)) ? d.toLocaleDateString('en-US', {
+                                                                            year: 'numeric', month: 'short', day: 'numeric'
+                                                                        }) : '';
+                                                                    })()}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-gray-600 mt-1">
+                                                                AI analysis identified this as <span className={colorClass}>{className}</span> with {(pred.confidence * 100).toFixed(1)}% confidence
                                                             </p>
-                                                            <p className="text-gray-500 mt-1">
-                                                                Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
-                                                            </p>
+                                                            {(() => {
+                                                                const aiBox = (pred.type === 'edited' && pred.originalBox) ? pred.originalBox : pred.box;
+                                                                if (!aiBox) return null;
+                                                                return (
+                                                                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                        <p className="font-medium text-gray-700 mb-1">Bounding Box Coordinates:</p>
+                                                                        <p className="text-gray-600">
+                                                                            X1: {aiBox[0].toFixed(2)}, Y1: {aiBox[1].toFixed(2)}, X2: {aiBox[2].toFixed(2)}, Y2: {aiBox[3].toFixed(2)}
+                                                                        </p>
+                                                                        <p className="text-gray-500 mt-1">
+                                                                            Width: {(aiBox[2] - aiBox[0]).toFixed(2)}px, Height: {(aiBox[3] - aiBox[1]).toFixed(2)}px
+                                                                        </p>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
