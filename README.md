@@ -281,6 +281,13 @@ ___
 
 ## Workflow through the the Interface
 
-The video expalining the workflow through the User Interface can be access using the following link.🎥
+The video expalining the workflows through the User Interface for all phases can be accessed using the following links.🎥
 
-👉 [Watch the Workflow Video](<https://drive.google.com/file/d/1oBK7fp4eDmFDBDKQfPqj_T-U-D35DcXK/view?usp=sharing)>) 
+**Phase 1:**  
+👉 [Watch the Workflow Video for Phase 1](<https://drive.google.com/file/d/1oBK7fp4eDmFDBDKQfPqj_T-U-D35DcXK/view?usp=sharing)>) 
+
+**Phase 2:**   
+👉 [Watch the Workflow Video for Phase 2](<https://drive.google.com/file/d/1oBK7fp4eDmFDBDKQfPqj_T-U-D35DcXK/view?usp=sharing)>) 
+
+**Phase 3:**  
+👉 [Watch the Workflow Video for Phase 3](<https://drive.google.com/file/d/1oBK7fp4eDmFDBDKQfPqj_T-U-D35DcXK/view?usp=sharing)>) 
