@@ -5,3 +5,5 @@ __pycache__/
 test/
 backend/src/main/resources/application.properties
 log/
+backend/uploads/baseline/
+backend/uploads/maintenance/
