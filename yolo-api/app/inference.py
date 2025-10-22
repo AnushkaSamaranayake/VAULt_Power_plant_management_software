@@ -11,9 +11,9 @@ MODEL_PATH = "models/best.pt"
 # Determine best device for inference
 if torch.cuda.is_available():
     print("Device for inference: CUDA")
-    INFERENCE_DEVICE = '0'  # Use GPU for inference if available
+    INFERENCE_DEVICE = torch.device('cuda')  # Use GPU for inference if available
 else:
-    INFERENCE_DEVICE = 'cpu'  # Fallback to CPU
+    INFERENCE_DEVICE = torch.device('cpu')  # Fallback to CPU
 
 #load the model
 model = YOLO(MODEL_PATH)
