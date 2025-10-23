@@ -233,15 +233,29 @@ It provides the user interface and communicates with the backend API.
 
 ## 🚀 Getting Started
 
+Navigate to the frontend directory.
+
+```bash
+cd VAULt_Power_plant_management_software/frontend
+```
+
+
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v16+ recommended)
 - npm (comes with Node.js)
 
+
+
+
+
 ### Install Dependencies
+
 
 ```bash
 npm install
 ```
+
+
 
 ___
 
@@ -276,6 +290,101 @@ npm run preview
 ```
 
 This will start a server that serves the files from dist/.
+
+___
+
+# Exploring Key Functionalities for Anomaly Detection ⚡
+
+This section outlines the key functionalities of anomaly detection. A basic workflow on how ***GRIDWATCH🤖*** must be used is included below. The user may refer to this section to get a quick walkthrough of effectively using this system.
+
+___
+
+## 1. Adding Inspections 👀
+
+▶️ Navigate to the **Transformers** tab using the navigation bar. 
+
+
+▶️ Click **Add Inspection** and fill out the modal with the required information. 
+
+*Note: Transformer entities should exist in the system before adding inspections (ex, 'TR-001').*
+
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video1.gif)
+
+___
+
+## 2. Uploading Inspection Images 🌨️
+
+▶️ After an inspection has been added, click the **view 👁️** option to navigate to the *Inspection* view.
+
+▶️ The baseline image of the transformer will be shown under the *Baseline Image* section. 
+
+*Important: If no baseline image has been added to the transformer prior to this, add the baseline image first.*
+
+▶️ Proceed then, by adding the maintenance image for the current inspection.
+
+▶️ Reload the page, and the bounding boxes outlining the detected anomalies will be visible. 
+
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video2.gif)
+
+___
+
+## 3. Deletion of Detected Anomalies 🚮
+
+▶️ Click '**Edit Bounding Boxes**' option to open the bounding box editing modal. 
+
+▶️ Scroll down within the modal to find the detected anomalies in a list format. 
+
+▶️ To delete a detected anomaly, click '**Delete**' and click '**Save Changes**'
+
+▶️ The modal will close and navigate to the inspection page. The updated anomalies will be displayed. 
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video3.gif)
+
+___
+## 4. Editing Bounding Boxes 👩‍🎨
+
+▶️ Click **Edit Bounding Boxes** to navigate to the editing modal.
+
+▶️ Scroll down to find the list of anomalies for the given image. Click **Edit** on the particular anomaly that needs to be edited. 
+
+▶️ Scroll up to the image, click and drag on the corners of the bounding box corresponding to the selected anomaly. 
+
+▶️ Change the bounding box as required. Scroll down and hit **Save Changes**. 
+
+▶️ The user may add a note before saving regarding the changes made. *(Not mandatory, but recommended.)*
+
+▶️ The maintenance image will be displayed in the *Inspection* view with the updated bounding boxes. 
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video4.gif)
+
+___
+
+## 5. Adding New Bounding Boxes ➕📦
+
+▶️ Click **Edit Bounding Boxes** to navigate to the editing modal.
+
+▶️ Click the **Add New Box** option. Select a Fault class when prompted as required. 
+
+▶️ The new bounding box will be visible now. The user may change the dimensions of the newly added box in a similar manner to editing the existing bounding boxes. 
+
+▶️ Click **Save Changes**. 
+
+*(Adding a note is recommended but not mandatory.)*
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video5.gif)
+
+___
+## 6. Exporting Change Log 🧑‍💻📃
+
+▶️ From the *Inspection* view, click *Export Change Log*.
+
+▶️ A .txt file will be downloaded including the list of changes made to the given inspection. 
+
+▶️ The user may use this functionality to get a comprehensive overview of all the changes that have been made to the maintenance image after automatic anomaly detection.
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video6.gif)
 
 ___
 
