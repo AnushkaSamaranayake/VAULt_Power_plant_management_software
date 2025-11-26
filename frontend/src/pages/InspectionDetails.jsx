@@ -1,6 +1,6 @@
 import React from 'react'
 import axios from 'axios'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { FileText, Printer } from 'lucide-react'
 import NavigationBar from '../components/NavigationBar'
@@ -11,6 +11,7 @@ import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
     const { inspectionNo } = useParams();
+    const navigate = useNavigate();
     const [inspection, setInspection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -84,6 +85,7 @@ const InspectionDetails = () => {
                     <h2 className='text-xl font-semibold text-gray-800 mb-6'>Thermal Image Inspection Form</h2>
                     <div className='flex gap-4'>
                         <button 
+                            onClick={() => navigate(`/inspection/${inspectionNo}/form`)}
                             className='flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium'
                         >
                             <FileText className='w-5 h-5' />
