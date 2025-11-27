@@ -705,20 +705,6 @@ const ThermalInspectionForm = () => {
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
 
-        // Inspection completion timestamp
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Inspection Completed On:', margin, yPosition);
-        pdf.setFont('helvetica', 'normal');
-        const completionDate = formData.afterThermalDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        const completionTime = formData.afterThermalTime || new Date().toTimeString().slice(0, 5);
-        pdf.text(`${completionDate} at ${completionTime}`, margin + 55, yPosition);
-        yPosition += 12;
-
-        // Grey line separator
-        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 8;
-
         checkPageBreak(60); // Check space for Inspection Values
 
         // Section 7: First and Second Inspection Values
@@ -754,6 +740,22 @@ const ThermalInspectionForm = () => {
         pdf.text('I - R:', margin + 5, yPosition);
         pdf.text('Y:', 70, yPosition);
         pdf.text('B:', 115, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        checkPageBreak(15);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Inspection completion timestamp
+        checkPageBreak(10);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Inspection Completed On:', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        const completionDate = formData.afterThermalDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const completionTime = formData.afterThermalTime || new Date().toTimeString().slice(0, 5);
+        pdf.text(`${completionDate} at ${completionTime}`, margin + 55, yPosition);
 
         // Return the PDF as a blob
         return pdf.output('blob');
