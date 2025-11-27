@@ -230,8 +230,18 @@ const ThermalInspectionForm = () => {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 15;
-        let yPosition = 20;
+        const margin = 25.4; // 1 inch = 25.4mm
+        const maxY = pageHeight - margin; // Bottom margin
+        let yPosition = margin; // Start at top margin
+
+        const checkPageBreak = (requiredSpace) => {
+            if (yPosition + requiredSpace > maxY) {
+                pdf.addPage();
+                yPosition = margin;
+                return true;
+            }
+            return false;
+        };
 
         // Add GridWatch Logo
         pdf.setFontSize(20);
@@ -253,6 +263,8 @@ const ThermalInspectionForm = () => {
 
         // Reset text color
         pdf.setTextColor(0, 0, 0);
+
+        checkPageBreak(60); // Check if we need space for Basic Information section
 
         // Section 1: Basic Information
         pdf.setFontSize(14);
@@ -316,6 +328,8 @@ const ThermalInspectionForm = () => {
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
 
+        checkPageBreak(30); // Check space for Base Line Imaging section
+
         // Section 2: Base Line Imaging nos (IR)
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
@@ -348,6 +362,9 @@ const ThermalInspectionForm = () => {
         // Thermal Analysis Image
         if (inspection?.maintenanceImagePath && imageRef.current) {
             try {
+                const imgHeight = 75;
+                checkPageBreak(imgHeight + 15); // Check space for image
+                
                 pdf.setFontSize(12);
                 pdf.setFont('helvetica', 'bold');
                 pdf.text('Thermal Analysis Image', margin, yPosition);
@@ -355,7 +372,6 @@ const ThermalInspectionForm = () => {
                 
                 const imgData = imageRef.current.src;
                 const imgWidth = 120;
-                const imgHeight = 75;
                 const imgX = (pageWidth - imgWidth) / 2;
                 
                 pdf.addImage(imgData, 'JPEG', imgX, yPosition, imgWidth, imgHeight);
@@ -367,6 +383,8 @@ const ThermalInspectionForm = () => {
 
         // Detection Details
         if (boundingBoxes.length > 0) {
+            checkPageBreak(20 + (boundingBoxes.length * 7)); // Check space for detection details
+            
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
             pdf.text(`${boundingBoxes.length} anomal${boundingBoxes.length !== 1 ? 'ies' : 'y'} detected`, margin, yPosition);
@@ -389,9 +407,8 @@ const ThermalInspectionForm = () => {
             });
         }
 
-        // Start new page for remaining sections
-        pdf.addPage();
-        yPosition = 20;
+        // Check if we need a new page for remaining sections
+        checkPageBreak(100);
 
         // Section 3: Last Month
         pdf.setFontSize(14);
@@ -419,6 +436,8 @@ const ThermalInspectionForm = () => {
         // Grey line separator
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
+
+        checkPageBreak(30); // Check space for Current Month
 
         // Section 4: Current Month
         pdf.setFontSize(14);
@@ -449,6 +468,8 @@ const ThermalInspectionForm = () => {
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
 
+        checkPageBreak(30); // Check space for Meter Details
+
         // Section 5: Meter Details
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
@@ -477,6 +498,8 @@ const ThermalInspectionForm = () => {
         // Grey line separator
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
+
+        checkPageBreak(80); // Check space for Work Content and After Inspection Report
 
         // Section 6: Work Content and After Inspection Report
         pdf.setFontSize(14);
@@ -579,6 +602,8 @@ const ThermalInspectionForm = () => {
         // Grey line separator
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
+
+        checkPageBreak(60); // Check space for Inspection Values
 
         // Section 7: First and Second Inspection Values
         pdf.setFontSize(14);
