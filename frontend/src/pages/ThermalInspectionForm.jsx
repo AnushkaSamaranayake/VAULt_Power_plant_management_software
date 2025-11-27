@@ -57,7 +57,21 @@ const ThermalInspectionForm = () => {
             { ok: true, notOk: false, irNo: '' },
             { ok: true, notOk: false, irNo: '' },
             { ok: true, notOk: false, irNo: '' }
-        ]
+        ],
+        // Section 7: First Inspection Readings
+        firstInspectionVR: '',
+        firstInspectionVY: '',
+        firstInspectionVB: '',
+        firstInspectionIR: '',
+        firstInspectionIY: '',
+        firstInspectionIB: '',
+        // Section 7: Second Inspection Readings
+        secondInspectionVR: '',
+        secondInspectionVY: '',
+        secondInspectionVB: '',
+        secondInspectionIR: '',
+        secondInspectionIY: '',
+        secondInspectionIB: ''
     });
 
     const [isEditing, setIsEditing] = useState(true);
@@ -66,7 +80,19 @@ const ThermalInspectionForm = () => {
 
     useEffect(() => {
         fetchInspectionData();
+        fetchSavedFormData();
     }, [inspectionNo]);
+
+    // Auto-save effect with debouncing
+    useEffect(() => {
+        if (!inspection) return; // Don't auto-save until inspection is loaded
+
+        const debounceTimer = setTimeout(() => {
+            autoSaveFormData();
+        }, 2000); // Auto-save after 2 seconds of inactivity
+
+        return () => clearTimeout(debounceTimer);
+    }, [formData, inspection]);
 
     const fetchInspectionData = async () => {
         try {
@@ -96,6 +122,69 @@ const ThermalInspectionForm = () => {
             setError("Failed to load inspection details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchSavedFormData = async () => {
+        try {
+            const response = await axios.get(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}`);
+            if (response.data) {
+                // Parse JSON strings back to objects
+                const savedData = {
+                    ...response.data,
+                    workContent: response.data.workContent ? JSON.parse(response.data.workContent) : formData.workContent,
+                    inspectionReport: response.data.inspectionReport ? JSON.parse(response.data.inspectionReport) : formData.inspectionReport
+                };
+                setFormData(prev => ({
+                    ...prev,
+                    ...savedData
+                }));
+                console.log('Loaded saved form data', {
+                    workContent: savedData.workContent,
+                    inspectionReport: savedData.inspectionReport
+                });
+            }
+        } catch (error) {
+            if (error.response?.status === 404) {
+                console.log('No saved form data found, using defaults');
+            } else {
+                console.error('Error loading saved form data:', error);
+            }
+        }
+    };
+
+    const autoSaveFormData = async () => {
+        try {
+            const dataToSave = {
+                ...formData,
+                workContent: JSON.stringify(formData.workContent),
+                inspectionReport: JSON.stringify(formData.inspectionReport)
+            };
+
+            await axios.post(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/auto-save`, dataToSave);
+            console.log('Form auto-saved successfully', {
+                workContent: formData.workContent,
+                inspectionReport: formData.inspectionReport,
+                firstInspection: {
+                    VR: dataToSave.firstInspectionVR,
+                    VY: dataToSave.firstInspectionVY,
+                    VB: dataToSave.firstInspectionVB,
+                    IR: dataToSave.firstInspectionIR,
+                    IY: dataToSave.firstInspectionIY,
+                    IB: dataToSave.firstInspectionIB
+                },
+                secondInspection: {
+                    VR: dataToSave.secondInspectionVR,
+                    VY: dataToSave.secondInspectionVY,
+                    VB: dataToSave.secondInspectionVB,
+                    IR: dataToSave.secondInspectionIR,
+                    IY: dataToSave.secondInspectionIY,
+                    IB: dataToSave.secondInspectionIB
+                }
+            });
+        } catch (error) {
+            console.error('Error auto-saving form:', error);
+            // Silent failure for auto-save - don't disrupt user
         }
     };
 
@@ -209,19 +298,35 @@ const ThermalInspectionForm = () => {
         }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const now = new Date();
         const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const time = now.toTimeString().slice(0, 5);
         
-        setFormData(prev => ({
-            ...prev,
+        const updatedFormData = {
+            ...formData,
             afterThermalDate: date,
             afterThermalTime: time
-        }));
+        };
         
-        setIsEditing(false);
-        alert('Form saved successfully!');
+        setFormData(updatedFormData);
+        
+        try {
+            // Finalize the report in backend
+            const dataToSave = {
+                ...updatedFormData,
+                workContent: JSON.stringify(updatedFormData.workContent),
+                inspectionReport: JSON.stringify(updatedFormData.inspectionReport)
+            };
+
+            await axios.post(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/finalize`, dataToSave);
+            
+            setIsEditing(false);
+            alert('Form saved and finalized successfully!');
+        } catch (error) {
+            console.error('Error saving form:', error);
+            alert('Failed to save form. Please try again.');
+        }
     };
 
     const handleEdit = () => {
@@ -733,13 +838,13 @@ const ThermalInspectionForm = () => {
         yPosition += 7;
         
         pdf.setFont('helvetica', 'normal');
-        pdf.text('V - R:', margin + 5, yPosition);
-        pdf.text('Y:', 70, yPosition);
-        pdf.text('B:', 115, yPosition);
+        pdf.text(`V - R: ${formData.firstInspectionVR || '-'}`, margin + 5, yPosition);
+        pdf.text(`Y: ${formData.firstInspectionVY || '-'}`, 70, yPosition);
+        pdf.text(`B: ${formData.firstInspectionVB || '-'}`, 115, yPosition);
         yPosition += 6;
-        pdf.text('I - R:', margin + 5, yPosition);
-        pdf.text('Y:', 70, yPosition);
-        pdf.text('B:', 115, yPosition);
+        pdf.text(`I - R: ${formData.firstInspectionIR || '-'}`, margin + 5, yPosition);
+        pdf.text(`Y: ${formData.firstInspectionIY || '-'}`, 70, yPosition);
+        pdf.text(`B: ${formData.firstInspectionIB || '-'}`, 115, yPosition);
         yPosition += 10;
 
         pdf.setFont('helvetica', 'bold');
@@ -747,13 +852,13 @@ const ThermalInspectionForm = () => {
         yPosition += 7;
         
         pdf.setFont('helvetica', 'normal');
-        pdf.text('V - R:', margin + 5, yPosition);
-        pdf.text('Y:', 70, yPosition);
-        pdf.text('B:', 115, yPosition);
+        pdf.text(`V - R: ${formData.secondInspectionVR || '-'}`, margin + 5, yPosition);
+        pdf.text(`Y: ${formData.secondInspectionVY || '-'}`, 70, yPosition);
+        pdf.text(`B: ${formData.secondInspectionVB || '-'}`, 115, yPosition);
         yPosition += 6;
-        pdf.text('I - R:', margin + 5, yPosition);
-        pdf.text('Y:', 70, yPosition);
-        pdf.text('B:', 115, yPosition);
+        pdf.text(`I - R: ${formData.secondInspectionIR || '-'}`, margin + 5, yPosition);
+        pdf.text(`Y: ${formData.secondInspectionIY || '-'}`, 70, yPosition);
+        pdf.text(`B: ${formData.secondInspectionIB || '-'}`, 115, yPosition);
 
         // Return the PDF as a blob
         return pdf.output('blob');
@@ -1601,19 +1706,25 @@ const ThermalInspectionForm = () => {
                                         <div className='font-semibold text-gray-700'>V</div>
                                         <input
                                             type='text'
-                                            name='firstInspection_V_R'
+                                            name='firstInspectionVR'
+                                            value={formData.firstInspectionVR}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='firstInspection_V_Y'
+                                            name='firstInspectionVY'
+                                            value={formData.firstInspectionVY}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='firstInspection_V_B'
+                                            name='firstInspectionVB'
+                                            value={formData.firstInspectionVB}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1624,19 +1735,25 @@ const ThermalInspectionForm = () => {
                                         <div className='font-semibold text-gray-700'>I</div>
                                         <input
                                             type='text'
-                                            name='firstInspection_I_R'
+                                            name='firstInspectionIR'
+                                            value={formData.firstInspectionIR}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='firstInspection_I_Y'
+                                            name='firstInspectionIY'
+                                            value={formData.firstInspectionIY}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='firstInspection_I_B'
+                                            name='firstInspectionIB'
+                                            value={formData.firstInspectionIB}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1662,19 +1779,25 @@ const ThermalInspectionForm = () => {
                                         <div className='font-semibold text-gray-700'>V</div>
                                         <input
                                             type='text'
-                                            name='secondInspection_V_R'
+                                            name='secondInspectionVR'
+                                            value={formData.secondInspectionVR}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='secondInspection_V_Y'
+                                            name='secondInspectionVY'
+                                            value={formData.secondInspectionVY}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='secondInspection_V_B'
+                                            name='secondInspectionVB'
+                                            value={formData.secondInspectionVB}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1685,19 +1808,25 @@ const ThermalInspectionForm = () => {
                                         <div className='font-semibold text-gray-700'>I</div>
                                         <input
                                             type='text'
-                                            name='secondInspection_I_R'
+                                            name='secondInspectionIR'
+                                            value={formData.secondInspectionIR}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='secondInspection_I_Y'
+                                            name='secondInspectionIY'
+                                            value={formData.secondInspectionIY}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                         <input
                                             type='text'
-                                            name='secondInspection_I_B'
+                                            name='secondInspectionIB'
+                                            value={formData.secondInspectionIB}
+                                            onChange={handleFormInputChange}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
