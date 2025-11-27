@@ -984,6 +984,136 @@ const ThermalInspectionForm = () => {
                             </div>
                         </div>
                         </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 7: First and Second Inspection Values */}
+                        <div className='space-y-6'>
+                            <h3 className='text-lg font-semibold text-gray-800'>First and Second Inspection Values</h3>
+                            
+                            {/* First Inspection Voltage and Current Readings */}
+                            <div className='space-y-4'>
+                                <h4 className='text-sm font-medium text-gray-700'>First Inspection Voltage and Current Readings</h4>
+                                
+                                <div className='space-y-3'>
+                                    {/* Header Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3'>
+                                        <div></div>
+                                        <div className='text-center font-semibold text-gray-700'>R</div>
+                                        <div className='text-center font-semibold text-gray-700'>Y</div>
+                                        <div className='text-center font-semibold text-gray-700'>B</div>
+                                    </div>
+                                    
+                                    {/* V Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3 items-center'>
+                                        <div className='font-semibold text-gray-700'>V</div>
+                                        <input
+                                            type='text'
+                                            name='firstInspection_V_R'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='firstInspection_V_Y'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='firstInspection_V_B'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                    </div>
+                                    
+                                    {/* I Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3 items-center'>
+                                        <div className='font-semibold text-gray-700'>I</div>
+                                        <input
+                                            type='text'
+                                            name='firstInspection_I_R'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='firstInspection_I_Y'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='firstInspection_I_B'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Second Inspection Voltage and Current Readings */}
+                            <div className='space-y-4'>
+                                <h4 className='text-sm font-medium text-gray-700'>Second Inspection Voltage and Current Readings</h4>
+                                
+                                <div className='space-y-3'>
+                                    {/* Header Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3'>
+                                        <div></div>
+                                        <div className='text-center font-semibold text-gray-700'>R</div>
+                                        <div className='text-center font-semibold text-gray-700'>Y</div>
+                                        <div className='text-center font-semibold text-gray-700'>B</div>
+                                    </div>
+                                    
+                                    {/* V Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3 items-center'>
+                                        <div className='font-semibold text-gray-700'>V</div>
+                                        <input
+                                            type='text'
+                                            name='secondInspection_V_R'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='secondInspection_V_Y'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='secondInspection_V_B'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                    </div>
+                                    
+                                    {/* I Row */}
+                                    <div className='grid grid-cols-[50px_1fr_1fr_1fr] gap-3 items-center'>
+                                        <div className='font-semibold text-gray-700'>I</div>
+                                        <input
+                                            type='text'
+                                            name='secondInspection_I_R'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='secondInspection_I_Y'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <input
+                                            type='text'
+                                            name='secondInspection_I_B'
+                                            placeholder='Enter Value'
+                                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
