@@ -1741,7 +1741,7 @@ const ThermalInspectionForm = () => {
 
             {/* Print Preview Modal */}
             {showPrintPreview && (
-                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+                <div className='fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999] p-4'>
                     <div className='bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col'>
                         {/* Modal Header */}
                         <div className='px-6 py-4 border-b border-gray-200'>
