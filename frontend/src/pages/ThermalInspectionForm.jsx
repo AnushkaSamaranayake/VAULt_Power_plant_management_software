@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import NavigationBar from '../components/NavigationBar';
 import Footer from '../components/Footer';
 
@@ -20,11 +20,20 @@ const ThermalInspectionForm = () => {
     const [uploadError, setUploadError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Bounding boxes and canvas refs
+    const [boundingBoxes, setBoundingBoxes] = useState([]);
+    const [expandedErrors, setExpandedErrors] = useState([]);
+    const imageRef = useRef(null);
+    const canvasRef = useRef(null);
+
     // Form data state
     const [formData, setFormData] = useState({
         dateOfInspection: new Date().toISOString().split('T')[0],
         timeOfInspection: new Date().toTimeString().slice(0, 5),
-        inspectedBy: ''
+        inspectedBy: '',
+        baselineImagingRight: '',
+        baselineImagingLeft: '',
+        baselineImagingFront: ''
     });
 
     useEffect(() => {
@@ -41,6 +50,18 @@ const ThermalInspectionForm = () => {
             if (inspectionResponse.data.transformerNo) {
                 const transformerResponse = await axios.get(`http://localhost:8080/api/transformers/${inspectionResponse.data.transformerNo}`);
                 setTransformer(transformerResponse.data);
+            }
+
+            // Fetch effective bounding boxes
+            if (inspectionResponse.data.inspectionNo) {
+                try {
+                    const boxesResponse = await axios.get(`http://localhost:8080/api/inspections/${inspectionResponse.data.inspectionNo}/effective-boxes`);
+                    const data = typeof boxesResponse.data === 'string' ? JSON.parse(boxesResponse.data) : boxesResponse.data;
+                    setBoundingBoxes((data && Array.isArray(data.predictions)) ? data.predictions : []);
+                } catch (error) {
+                    console.error('Failed to fetch bounding boxes:', error);
+                    setBoundingBoxes([]);
+                }
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -141,6 +162,92 @@ const ThermalInspectionForm = () => {
             [name]: value
         }));
     };
+
+    const toggleErrorExpansion = (index) => {
+        setExpandedErrors(prev => 
+            prev.includes(index) 
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        );
+    };
+
+    // Draw bounding boxes on canvas
+    useEffect(() => {
+        const image = imageRef.current;
+        const canvas = canvasRef.current;
+        if (!image || !canvas || boundingBoxes.length === 0) return;
+
+        const drawBoundingBoxes = () => {
+            const ctx = canvas.getContext('2d');
+            const displayedWidth = image.clientWidth || image.width;
+            const displayedHeight = image.clientHeight || image.height;
+            const naturalWidth = image.naturalWidth;
+            const naturalHeight = image.naturalHeight;
+
+            if (!displayedWidth || !displayedHeight || !naturalWidth || !naturalHeight) return;
+
+            const scaleX = displayedWidth / naturalWidth;
+            const scaleY = displayedHeight / naturalHeight;
+
+            canvas.width = displayedWidth;
+            canvas.height = displayedHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            boundingBoxes.forEach((prediction, index) => {
+                const [x1, y1, x2, y2] = prediction.box;
+                const scaledX1 = x1 * scaleX;
+                const scaledY1 = y1 * scaleY;
+                const scaledX2 = x2 * scaleX;
+                const scaledY2 = y2 * scaleY;
+                const width = scaledX2 - scaledX1;
+                const height = scaledY2 - scaledY1;
+
+                let color;
+                switch (prediction.class) {
+                    case 0: color = '#ef4444'; break; // Red - Faulty
+                    case 1: color = '#10b981'; break; // Green - Normal
+                    case 2: color = '#f59e0b'; break; // Orange - Potentially Faulty
+                    default: color = '#6b7280'; // Gray
+                }
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(scaledX1, scaledY1, width, height);
+
+                const errorNumber = `${index + 1}`;
+                ctx.font = 'bold 14px Arial';
+                const badgeSize = 24;
+                
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(scaledX1 + badgeSize/2, scaledY1 + badgeSize/2, badgeSize/2, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(errorNumber, scaledX1 + badgeSize/2, scaledY1 + badgeSize/2);
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+            });
+        };
+
+        if (image.complete) {
+            drawBoundingBoxes();
+        } else {
+            image.onload = drawBoundingBoxes;
+        }
+
+        const ro = new ResizeObserver(() => drawBoundingBoxes());
+        try { ro.observe(image); } catch (_) {}
+
+        window.addEventListener('resize', drawBoundingBoxes);
+
+        return () => {
+            try { ro.disconnect(); } catch (_) {}
+            window.removeEventListener('resize', drawBoundingBoxes);
+        };
+    }, [boundingBoxes]);
 
     if (loading) {
         return (
@@ -465,6 +572,146 @@ const ThermalInspectionForm = () => {
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 2: Base Line Imaging nos (IR) */}
+                        <div className='space-y-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Base Line Imaging nos (IR)</h3>
+                            
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Right
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='baselineImagingRight'
+                                        value={formData.baselineImagingRight}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter IR value'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Left
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='baselineImagingLeft'
+                                        value={formData.baselineImagingLeft}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter IR value'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Front
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='baselineImagingFront'
+                                        value={formData.baselineImagingFront}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter IR value'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                            </div>
+
+                            {/* AI Analysis Image with Bounding Boxes */}
+                            {inspection?.maintenanceImagePath && (
+                                <div className='mt-6 mx-auto' style={{ width: '60%' }}>
+                                    <div className='relative border border-gray-300 rounded-lg overflow-hidden shadow-sm'>
+                                        <img 
+                                            ref={imageRef}
+                                            src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                                            alt="AI Analysis with Bounding Boxes"
+                                            className='w-full h-auto object-contain block'
+                                            crossOrigin="anonymous"
+                                        />
+                                        {boundingBoxes.length > 0 && (
+                                            <canvas
+                                                ref={canvasRef}
+                                                className='absolute top-0 left-0 pointer-events-none'
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Anomalies Summary */}
+                                    {boundingBoxes.length > 0 && (
+                                        <div className='mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                                            <div className='flex items-center space-x-3'>
+                                                <Brain className='w-5 h-5 text-blue-600' />
+                                                <div>
+                                                    <p className='text-sm font-semibold text-gray-800'>
+                                                        {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
+                                                    </p>
+                                                    <p className='text-xs text-gray-600'>
+                                                        View analysis in the comparison view above
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Detection Details */}
+                                    {boundingBoxes.length > 0 && (
+                                        <div className='mt-6 space-y-2'>
+                                            <h4 className='font-semibold text-sm text-gray-700'>Detection Details:</h4>
+                                            {boundingBoxes.map((pred, idx) => {
+                                                const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
+                                                const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
+                                                const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
+                                                const isExpanded = expandedErrors.includes(idx);
+                                                
+                                                return (
+                                                    <div key={idx} className='bg-gray-50 rounded border border-gray-200 overflow-hidden'>
+                                                        <div 
+                                                            className='flex items-center justify-between p-3 cursor-pointer hover:bg-gray-100 transition-colors'
+                                                            onClick={() => toggleErrorExpansion(idx)}
+                                                        >
+                                                            <div className='flex items-center gap-2'>
+                                                                <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                                    Error {idx + 1}
+                                                                </span>
+                                                                <span className={`font-medium ${colorClass} text-sm`}>{className}</span>
+                                                            </div>
+                                                            <div className='flex items-center gap-2'>
+                                                                <span className='text-gray-600 text-sm'>
+                                                                    Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                                                </span>
+                                                                {isExpanded ? (
+                                                                    <ChevronUp className='w-4 h-4 text-gray-500' />
+                                                                ) : (
+                                                                    <ChevronDown className='w-4 h-4 text-gray-500' />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {isExpanded && (
+                                                            <div className='border-t border-gray-200 bg-white p-3'>
+                                                                <div className='text-xs text-gray-600'>
+                                                                    <p className='mb-2'>
+                                                                        <span className='font-medium'>Box Coordinates:</span> X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                                    </p>
+                                                                    <p>
+                                                                        <span className='font-medium'>Dimensions:</span> Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </form>
                 </div>
