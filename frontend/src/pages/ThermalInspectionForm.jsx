@@ -41,8 +41,12 @@ const ThermalInspectionForm = () => {
         transformerType: '',
         meterSerialNumber: '',
         meterCTRatio: '',
-        meterMake: ''
+        meterMake: '',
+        afterThermalDate: '',
+        afterThermalTime: ''
     });
+
+    const [isEditing, setIsEditing] = useState(true);
 
     useEffect(() => {
         fetchInspectionData();
@@ -169,6 +173,29 @@ const ThermalInspectionForm = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleSave = () => {
+        const now = new Date();
+        const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const time = now.toTimeString().slice(0, 5);
+        
+        setFormData(prev => ({
+            ...prev,
+            afterThermalDate: date,
+            afterThermalTime: time
+        }));
+        
+        setIsEditing(false);
+        alert('Form saved successfully!');
+    };
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handlePrintReport = () => {
+        // Functionality to be implemented
     };
 
 
@@ -977,8 +1004,8 @@ const ThermalInspectionForm = () => {
                                         <div className='col-span-2 text-center text-xs font-medium text-gray-600'>IR No(s).</div>
                                     </div>
                                     <div className='flex items-center justify-between text-xs text-gray-500 mt-3'>
-                                        <span>After Thermal Date: 12 Jul, 2025</span>
-                                        <span>Time: 12:25</span>
+                                        <span>After Thermal Date: {formData.afterThermalDate || 'Not set'}</span>
+                                        <span>Time: {formData.afterThermalTime || 'Not set'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1113,6 +1140,34 @@ const ThermalInspectionForm = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className='flex justify-end gap-4 mt-8 pt-6 border-t border-gray-300'>
+                            {isEditing ? (
+                                <button
+                                    type='button'
+                                    onClick={handleSave}
+                                    className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                >
+                                    Save
+                                </button>
+                            ) : (
+                                <button
+                                    type='button'
+                                    onClick={handleEdit}
+                                    className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
+                                >
+                                    Edit
+                                </button>
+                            )}
+                            <button
+                                type='button'
+                                onClick={handlePrintReport}
+                                className='px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500'
+                            >
+                                Print Report
+                            </button>
                         </div>
                     </form>
                 </div>
