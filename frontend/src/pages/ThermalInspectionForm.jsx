@@ -271,23 +271,128 @@ const ThermalInspectionForm = () => {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 25.4; // 1 inch = 25.4mm
-        const maxY = pageHeight - margin; // Bottom margin
-        let yPosition = margin; // Start at top margin
+        const maxY = pageHeight - margin - 10; // Bottom margin with space for footer
+        let yPosition = margin + 10; // Start below header
+
+        // Generate PDF filename for header
+        const inspectionDate = formData.dateOfInspection || new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+        const location = transformer?.location || 'Unknown';
+        const transformerNo = transformer?.transformerNo || 'Unknown';
+        const headerTitle = `Inspection_Report_${inspectionDate}_${location}_${transformerNo}`;
+
+        // Function to add header on each page
+        const addHeader = () => {
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(headerTitle, pageWidth / 2, 15, { align: 'center' });
+            // Header separator line
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, 18, pageWidth - margin, 18);
+            pdf.setTextColor(0, 0, 0); // Reset to black
+        };
+
+        // Function to add footer on each page
+        const addFooter = (pageNum) => {
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(100, 100, 100);
+            // Footer separator line
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+            // Page number
+            pdf.text(`Page ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            pdf.setTextColor(0, 0, 0); // Reset to black
+        };
+
+        // Add header and footer to first page
+        addHeader();
+        addFooter(1);
 
         const checkPageBreak = (requiredSpace) => {
             if (yPosition + requiredSpace > maxY) {
+                const currentPage = pdf.internal.pages.length - 1;
                 pdf.addPage();
-                yPosition = margin;
+                yPosition = margin + 10; // Start below header
+                addHeader();
+                addFooter(currentPage + 1);
                 return true;
             }
             return false;
         };
 
-        // Add GridWatch Logo
-        pdf.setFontSize(20);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('GridWatch', pageWidth / 2, yPosition, { align: 'center' });
-        yPosition += 10;
+        // Add GridWatch Logo and Title at top-left
+        try {
+            // Load the logo image
+            const logoImg = new Image();
+            logoImg.crossOrigin = 'anonymous'; // Handle CORS
+            
+            // Try multiple possible paths
+            const possiblePaths = [
+                '/src/assets/GridWatchLogo.png',
+                './src/assets/GridWatchLogo.png',
+                '../assets/GridWatchLogo.png',
+                new URL('../assets/GridWatchLogo.png', import.meta.url).href
+            ];
+            
+            let logoLoaded = false;
+            
+            for (const path of possiblePaths) {
+                try {
+                    logoImg.src = path;
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => reject(new Error('Timeout')), 1000);
+                        logoImg.onload = () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        };
+                        logoImg.onerror = () => {
+                            clearTimeout(timeout);
+                            reject();
+                        };
+                        if (logoImg.complete && logoImg.naturalWidth > 0) {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    });
+                    logoLoaded = true;
+                    break; // Successfully loaded
+                } catch (e) {
+                    continue; // Try next path
+                }
+            }
+            
+            if (logoLoaded) {
+                // Convert to canvas to ensure it works in PDF
+                const canvas = document.createElement('canvas');
+                canvas.width = logoImg.naturalWidth;
+                canvas.height = logoImg.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(logoImg, 0, 0);
+                const logoDataUrl = canvas.toDataURL('image/png');
+                
+                // Add logo image at top-left (8mm x 8mm size)
+                const logoSize = 8;
+                pdf.addImage(logoDataUrl, 'PNG', margin, yPosition, logoSize, logoSize);
+                
+                // Add "GridWatch" text next to logo
+                pdf.setFontSize(20);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('GridWatch', margin + logoSize + 3, yPosition + 6);
+                yPosition += logoSize + 2;
+            } else {
+                throw new Error('Logo not found');
+            }
+        } catch (error) {
+            console.error('Error loading logo:', error);
+            // Fallback to text-only if logo fails to load
+            pdf.setFontSize(20);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('GridWatch', margin, yPosition + 6);
+            yPosition += 10;
+        }
 
         // Grey line separator
         pdf.setDrawColor(200, 200, 200);
