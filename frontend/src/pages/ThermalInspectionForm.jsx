@@ -408,6 +408,11 @@ const ThermalInspectionForm = () => {
                 const tempCanvas = document.createElement('canvas');
                 const image = imageRef.current;
                 
+                // Verify image is loaded
+                if (!image || !image.complete || image.naturalWidth === 0) {
+                    throw new Error('Image not fully loaded');
+                }
+                
                 // Get natural and target dimensions
                 const naturalWidth = image.naturalWidth;
                 const naturalHeight = image.naturalHeight;
@@ -468,6 +473,13 @@ const ThermalInspectionForm = () => {
                 yPosition += imgHeight + 8;
             } catch (error) {
                 console.error('Error adding image to PDF:', error);
+                console.error('Error details:', {
+                    hasImage: !!imageRef.current,
+                    imageComplete: imageRef.current?.complete,
+                    naturalWidth: imageRef.current?.naturalWidth,
+                    imagePath: inspection?.maintenanceImagePath
+                });
+                throw error; // Re-throw to be caught by handlePrintReport
             }
         }
 
