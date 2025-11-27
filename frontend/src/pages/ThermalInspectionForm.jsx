@@ -738,18 +738,13 @@ const ThermalInspectionForm = () => {
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>
                                         Time
                                     </label>
-                                    <select
+                                    <input
+                                        type='time'
                                         name='lastMonthTime'
                                         value={formData.lastMonthTime}
                                         onChange={handleFormInputChange}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                    >
-                                        <option value=''>Select Time</option>
-                                        <option value='Morning'>Morning</option>
-                                        <option value='Afternoon'>Afternoon</option>
-                                        <option value='Evening'>Evening</option>
-                                        <option value='Night'>Night</option>
-                                    </select>
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -864,6 +859,130 @@ const ThermalInspectionForm = () => {
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 6: Work Content and After Inspection Report */}
+                        <div className='space-y-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Work Content and After Inspection Report</h3>
+                            
+                            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                                {/* Work Content */}
+                                <div className='space-y-4'>
+                                    <h4 className='text-sm font-medium text-gray-700'>Work Content</h4>
+                                
+                                <div className='space-y-3'>
+                                    {[1, 2, 3, 4].map((rowNum) => (
+                                        <div key={rowNum} className='grid grid-cols-7 gap-2 items-center'>
+                                            <div className='text-center text-sm font-medium text-gray-700'>
+                                                {rowNum}
+                                            </div>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`workContent_${rowNum}_C`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                    defaultChecked={rowNum <= 3}
+                                                />
+                                            </div>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`workContent_${rowNum}_CI`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                    defaultChecked={rowNum <= 3}
+                                                />
+                                            </div>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`workContent_${rowNum}_T`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                    defaultChecked={rowNum <= 3}
+                                                />
+                                            </div>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`workContent_${rowNum}_R`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                    defaultChecked={rowNum <= 3}
+                                                />
+                                            </div>
+                                            <div className='col-span-2'>
+                                                <input
+                                                    type='text'
+                                                    name={`workContent_${rowNum}_Other`}
+                                                    placeholder='-'
+                                                    className='w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    
+                                    {/* Column Headers */}
+                                    <div className='grid grid-cols-7 gap-2 items-center pt-2 border-t border-gray-200'>
+                                        <div className='text-center text-xs font-medium text-gray-600'>No.</div>
+                                        <div className='text-center text-xs font-medium text-gray-600'>C</div>
+                                        <div className='text-center text-xs font-medium text-gray-600'>CI</div>
+                                        <div className='text-center text-xs font-medium text-gray-600'>T</div>
+                                        <div className='text-center text-xs font-medium text-gray-600'>R</div>
+                                        <div className='col-span-2 text-center text-xs font-medium text-gray-600'>Other</div>
+                                    </div>
+                                    <div className='text-xs text-gray-500 mt-2'>
+                                        C- Check, CI- Clean, T- Tight, R- Replace
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* After Inspection Report */}
+                            <div className='space-y-4'>
+                                <h4 className='text-sm font-medium text-gray-700'>After Inspection Report</h4>
+                                
+                                <div className='space-y-3'>
+                                    {[1, 2, 3, 4].map((rowNum) => (
+                                        <div key={rowNum} className='grid grid-cols-4 gap-3 items-center'>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`afterInspection_${rowNum}_OK`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                    defaultChecked={true}
+                                                />
+                                            </div>
+                                            <div className='flex justify-center'>
+                                                <input
+                                                    type='checkbox'
+                                                    name={`afterInspection_${rowNum}_NOTOK`}
+                                                    className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
+                                                />
+                                            </div>
+                                            <div className='col-span-2'>
+                                                <input
+                                                    type='text'
+                                                    name={`afterInspection_${rowNum}_IRNo`}
+                                                    placeholder='-'
+                                                    className='w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    
+                                    {/* Column Headers */}
+                                    <div className='grid grid-cols-4 gap-3 items-center pt-2 border-t border-gray-200'>
+                                        <div className='text-center text-xs font-medium text-gray-600'>OK</div>
+                                        <div className='text-center text-xs font-medium text-gray-600'>NOT OK</div>
+                                        <div className='col-span-2 text-center text-xs font-medium text-gray-600'>IR No(s).</div>
+                                    </div>
+                                    <div className='flex items-center justify-between text-xs text-gray-500 mt-3'>
+                                        <span>After Thermal Date: 12 Jul, 2025</span>
+                                        <span>Time: 12:25</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         </div>
                     </form>
                 </div>
