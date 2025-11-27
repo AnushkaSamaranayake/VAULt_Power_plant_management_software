@@ -63,6 +63,7 @@ const ThermalInspectionForm = () => {
     const [isEditing, setIsEditing] = useState(true);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+    const [pdfFileName, setPdfFileName] = useState('');
 
     useEffect(() => {
         fetchInspectionData();
@@ -233,6 +234,14 @@ const ThermalInspectionForm = () => {
             const pdfBlob = await generatePDF();
             const url = URL.createObjectURL(pdfBlob);
             setPdfPreviewUrl(url);
+            
+            // Auto-generate PDF filename
+            const inspectionDate = formData.dateOfInspection || new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+            const location = transformer?.location || 'Unknown';
+            const transformerNo = transformer?.transformerNo || 'Unknown';
+            const generatedName = `Inspection_Report_${inspectionDate}_${location}_${transformerNo}`;
+            setPdfFileName(generatedName);
+            
             setShowPrintPreview(true);
         } catch (error) {
             console.error('Error generating PDF preview:', error);
@@ -244,7 +253,7 @@ const ThermalInspectionForm = () => {
         if (pdfPreviewUrl) {
             const link = document.createElement('a');
             link.href = pdfPreviewUrl;
-            link.download = `Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`;
+            link.download = `${pdfFileName || 'Inspection_Report'}.pdf`;
             link.click();
         }
     };
@@ -1772,19 +1781,35 @@ const ThermalInspectionForm = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className='px-6 py-4 border-t border-gray-200 flex justify-end gap-3'>
-                            <button
-                                onClick={handleClosePreview}
-                                className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleExportPDF}
-                                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            >
-                                Export PDF
-                            </button>
+                        <div className='px-6 py-4 border-t border-gray-200 space-y-4'>
+                            {/* PDF Filename Input */}
+                            <div className='flex items-center gap-3'>
+                                <label className='text-sm font-medium text-gray-700 whitespace-nowrap'>File Name:</label>
+                                <input
+                                    type='text'
+                                    value={pdfFileName}
+                                    onChange={(e) => setPdfFileName(e.target.value)}
+                                    className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    placeholder='Enter PDF filename'
+                                />
+                                <span className='text-sm text-gray-500'>.pdf</span>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className='flex justify-end gap-3'>
+                                <button
+                                    onClick={handleClosePreview}
+                                    className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleExportPDF}
+                                    className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                >
+                                    Export PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
