@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import NavigationBar from '../components/NavigationBar';
 import Footer from '../components/Footer';
 
@@ -194,8 +196,314 @@ const ThermalInspectionForm = () => {
         setIsEditing(true);
     };
 
-    const handlePrintReport = () => {
-        // Functionality to be implemented
+    const handlePrintReport = async () => {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 15;
+        let yPosition = 20;
+
+        // Add GridWatch Logo
+        pdf.setFontSize(20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('GridWatch', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 10;
+
+        // Grey line separator
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 10;
+
+        // Title
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 51, 153);
+        pdf.text('Thermal Image Inspection Form', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 15;
+
+        // Reset text color
+        pdf.setTextColor(0, 0, 0);
+
+        // Section 1: Basic Information
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Basic Information', margin, yPosition);
+        yPosition += 8;
+
+        // Row 1: Branch, Transformer No, Pole No
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Branch', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(transformer?.branch || 'N/A', margin + 50, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Transformer No.', 80, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(inspection?.transformerNo || 'N/A', 80 + 38, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Pole No.', 145, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(String(transformer?.poleNo || 'N/A'), 145 + 25, yPosition);
+        yPosition += 8;
+
+        // Row 2: Location Details
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Location Details', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        const locationText = transformer?.location || 'N/A';
+        pdf.text(locationText, margin + 50, yPosition, { maxWidth: pageWidth - margin - 65 });
+        yPosition += 8;
+
+        // Row 3: Date, Time, Inspected By
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Date of Inspection', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.dateOfInspection || 'N/A', margin + 50, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Time', 80, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.timeOfInspection || 'N/A', 80 + 15, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Inspected By', 145, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.inspectedBy || 'N/A', 145 + 30, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Section 2: Base Line Imaging nos (IR)
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Base Line Imaging nos (IR)', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Right', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.baselineImagingRight || 'N/A', margin + 50, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Left', 80, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.baselineImagingLeft || 'N/A', 80 + 15, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Front', 145, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.baselineImagingFront || 'N/A', 145 + 18, yPosition);
+        yPosition += 10;
+
+        // Thermal Analysis Image
+        if (inspection?.maintenanceImagePath && imageRef.current) {
+            try {
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Thermal Analysis Image', margin, yPosition);
+                yPosition += 8;
+                
+                const imgData = imageRef.current.src;
+                const imgWidth = 120;
+                const imgHeight = 75;
+                const imgX = (pageWidth - imgWidth) / 2;
+                
+                pdf.addImage(imgData, 'JPEG', imgX, yPosition, imgWidth, imgHeight);
+                yPosition += imgHeight + 8;
+            } catch (error) {
+                console.error('Error adding image to PDF:', error);
+            }
+        }
+
+        // Detection Details
+        if (boundingBoxes.length > 0) {
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`${boundingBoxes.length} anomal${boundingBoxes.length !== 1 ? 'ies' : 'y'} detected`, margin, yPosition);
+            yPosition += 8;
+
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Detection Details:', margin, yPosition);
+            yPosition += 6;
+
+            boundingBoxes.forEach((pred, idx) => {
+                const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
+                const confidence = (pred.confidence * 100).toFixed(1);
+                
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`Error ${idx + 1}:`, margin + 5, yPosition);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`${className} - Confidence: ${confidence}%`, margin + 25, yPosition);
+                yPosition += 5;
+                
+                pdf.setFontSize(10);
+                pdf.text(`Box Coordinates: X1: ${pred.box[0].toFixed(2)}, Y1: ${pred.box[1].toFixed(2)}, X2: ${pred.box[2].toFixed(2)}, Y2: ${pred.box[3].toFixed(2)}`, margin + 10, yPosition);
+                yPosition += 5;
+                pdf.text(`Dimensions: Width: ${(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: ${(pred.box[3] - pred.box[1]).toFixed(2)}px`, margin + 10, yPosition);
+                yPosition += 7;
+                pdf.setFontSize(12);
+            });
+        }
+
+        // Start new page for remaining sections
+        pdf.addPage();
+        yPosition = 20;
+
+        // Section 3: Last Month
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Last Month', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('kVA', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.lastMonthKVA || 'N/A', margin + 50, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Date', 80, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.lastMonthDate || 'N/A', 80 + 15, yPosition);
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Time', 145, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.lastMonthTime || 'N/A', 145 + 15, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Section 4: Current Month
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Current Month', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Current Month kVA', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.currentMonthKVA || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Baseline Condition', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.baselineCondition || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Transformer Type', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.transformerType || 'N/A', margin + 50, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Section 5: Meter Details
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Meter Details', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Serial Number', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.meterSerialNumber || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Meter CT Ratio', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.meterCTRatio ? `${formData.meterCTRatio}/5A` : 'N/A', margin + 50, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Make', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(formData.meterMake || 'N/A', margin + 50, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Section 6: Work Content and After Inspection Report
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Work Content and After Inspection Report', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Work Content', margin, yPosition);
+        yPosition += 7;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('C- Check, CI- Clean, T- Tight, R- Replace', margin + 5, yPosition);
+        yPosition += 8;
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('After Inspection Report', margin, yPosition);
+        yPosition += 7;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('After Thermal Date: ' + (formData.afterThermalDate || 'Not set'), margin + 5, yPosition);
+        pdf.text('Time: ' + (formData.afterThermalTime || 'Not set'), 120, yPosition);
+        yPosition += 12;
+
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Section 7: First and Second Inspection Values
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('First and Second Inspection Values', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('First Inspection Voltage and Current Readings', margin, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V - R:', margin + 5, yPosition);
+        pdf.text('Y:', 70, yPosition);
+        pdf.text('B:', 115, yPosition);
+        yPosition += 6;
+        pdf.text('I - R:', margin + 5, yPosition);
+        pdf.text('Y:', 70, yPosition);
+        pdf.text('B:', 115, yPosition);
+        yPosition += 10;
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Second Inspection Voltage and Current Readings', margin, yPosition);
+        yPosition += 7;
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V - R:', margin + 5, yPosition);
+        pdf.text('Y:', 70, yPosition);
+        pdf.text('B:', 115, yPosition);
+        yPosition += 6;
+        pdf.text('I - R:', margin + 5, yPosition);
+        pdf.text('Y:', 70, yPosition);
+        pdf.text('B:', 115, yPosition);
+
+        // Save the PDF
+        pdf.save(`Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`);
     };
 
 
