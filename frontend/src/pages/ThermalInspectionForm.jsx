@@ -20,6 +20,13 @@ const ThermalInspectionForm = () => {
     const [uploadError, setUploadError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Form data state
+    const [formData, setFormData] = useState({
+        dateOfInspection: new Date().toISOString().split('T')[0],
+        timeOfInspection: new Date().toTimeString().slice(0, 5),
+        inspectedBy: ''
+    });
+
     useEffect(() => {
         fetchInspectionData();
     }, [inspectionNo]);
@@ -125,6 +132,14 @@ const ThermalInspectionForm = () => {
             setCurrentImageUrl(`http://localhost:8080/api/transformers/images/${transformer.baselineImagePath}`);
             setShowImageModal(true);
         }
+    };
+
+    const handleFormInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     if (loading) {
@@ -353,9 +368,105 @@ const ThermalInspectionForm = () => {
                     </div>
                 )}
 
-                {/* Form Content Area - Blank for now */}
+                {/* Form Content Area */}
                 <div className='bg-white rounded-md shadow-md p-6'>
-                    <p className='text-gray-500 text-center py-20'>Form fields will be added here</p>
+                    <form className='space-y-6'>
+                        {/* Section 1: Basic Information */}
+                        <div className='space-y-4'>
+                            {/* First Row: Branch, Transformer No, Pole No */}
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Branch
+                                    </label>
+                                    <input
+                                        type='text'
+                                        value={inspection?.branch || ''}
+                                        disabled
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Transformer No.
+                                    </label>
+                                    <input
+                                        type='text'
+                                        value={inspection?.transformerNo || ''}
+                                        disabled
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Pole No.
+                                    </label>
+                                    <input
+                                        type='text'
+                                        value={transformer?.poleNo || ''}
+                                        disabled
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed'
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Second Row: Location Details */}
+                            <div>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Location Details
+                                </label>
+                                <input
+                                    type='text'
+                                    value={transformer?.location || ''}
+                                    disabled
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed'
+                                />
+                            </div>
+
+                            {/* Third Row: Date of Inspection, Time, Inspected By */}
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Date of Inspection
+                                    </label>
+                                    <div className='relative'>
+                                        <input
+                                            type='date'
+                                            name='dateOfInspection'
+                                            value={formData.dateOfInspection}
+                                            onChange={handleFormInputChange}
+                                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Time
+                                    </label>
+                                    <input
+                                        type='time'
+                                        name='timeOfInspection'
+                                        value={formData.timeOfInspection}
+                                        onChange={handleFormInputChange}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Inspected By
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='inspectedBy'
+                                        value={formData.inspectedBy}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Inspector ID'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
             <Footer />
