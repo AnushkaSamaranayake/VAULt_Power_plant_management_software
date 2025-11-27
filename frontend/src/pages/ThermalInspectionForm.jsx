@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain } from 'lucide-react';
 import NavigationBar from '../components/NavigationBar';
 import Footer from '../components/Footer';
 
@@ -22,7 +22,6 @@ const ThermalInspectionForm = () => {
 
     // Bounding boxes and canvas refs
     const [boundingBoxes, setBoundingBoxes] = useState([]);
-    const [expandedErrors, setExpandedErrors] = useState([]);
     const imageRef = useRef(null);
     const canvasRef = useRef(null);
 
@@ -33,7 +32,16 @@ const ThermalInspectionForm = () => {
         inspectedBy: '',
         baselineImagingRight: '',
         baselineImagingLeft: '',
-        baselineImagingFront: ''
+        baselineImagingFront: '',
+        lastMonthKVA: '',
+        lastMonthDate: '',
+        lastMonthTime: '',
+        currentMonthKVA: '',
+        baselineCondition: '',
+        transformerType: '',
+        meterSerialNumber: '',
+        meterCTRatio: '',
+        meterMake: ''
     });
 
     useEffect(() => {
@@ -163,13 +171,7 @@ const ThermalInspectionForm = () => {
         }));
     };
 
-    const toggleErrorExpansion = (index) => {
-        setExpandedErrors(prev => 
-            prev.includes(index) 
-                ? prev.filter(i => i !== index)
-                : [...prev, index]
-        );
-    };
+
 
     // Draw bounding boxes on canvas
     useEffect(() => {
@@ -626,6 +628,7 @@ const ThermalInspectionForm = () => {
                             {/* AI Analysis Image with Bounding Boxes */}
                             {inspection?.maintenanceImagePath && (
                                 <div className='mt-6 mx-auto' style={{ width: '60%' }}>
+                                    <h4 className='text-sm font-medium text-gray-700 mb-3'>Thermal Analysis Image</h4>
                                     <div className='relative border border-gray-300 rounded-lg overflow-hidden shadow-sm'>
                                         <img 
                                             ref={imageRef}
@@ -667,44 +670,28 @@ const ThermalInspectionForm = () => {
                                                 const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
                                                 const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
                                                 const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
-                                                const isExpanded = expandedErrors.includes(idx);
                                                 
                                                 return (
-                                                    <div key={idx} className='bg-gray-50 rounded border border-gray-200 overflow-hidden'>
-                                                        <div 
-                                                            className='flex items-center justify-between p-3 cursor-pointer hover:bg-gray-100 transition-colors'
-                                                            onClick={() => toggleErrorExpansion(idx)}
-                                                        >
+                                                    <div key={idx} className='bg-gray-50 rounded border border-gray-200 p-3'>
+                                                        <div className='flex items-center justify-between mb-3'>
                                                             <div className='flex items-center gap-2'>
                                                                 <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
                                                                     Error {idx + 1}
                                                                 </span>
                                                                 <span className={`font-medium ${colorClass} text-sm`}>{className}</span>
                                                             </div>
-                                                            <div className='flex items-center gap-2'>
-                                                                <span className='text-gray-600 text-sm'>
-                                                                    Confidence: {(pred.confidence * 100).toFixed(1)}%
-                                                                </span>
-                                                                {isExpanded ? (
-                                                                    <ChevronUp className='w-4 h-4 text-gray-500' />
-                                                                ) : (
-                                                                    <ChevronDown className='w-4 h-4 text-gray-500' />
-                                                                )}
-                                                            </div>
+                                                            <span className='text-gray-600 text-sm'>
+                                                                Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                                            </span>
                                                         </div>
-                                                        
-                                                        {isExpanded && (
-                                                            <div className='border-t border-gray-200 bg-white p-3'>
-                                                                <div className='text-xs text-gray-600'>
-                                                                    <p className='mb-2'>
-                                                                        <span className='font-medium'>Box Coordinates:</span> X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
-                                                                    </p>
-                                                                    <p>
-                                                                        <span className='font-medium'>Dimensions:</span> Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                        <div className='text-xs text-gray-600'>
+                                                            <p className='mb-1'>
+                                                                <span className='font-medium'>Box Coordinates:</span> X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                            </p>
+                                                            <p>
+                                                                <span className='font-medium'>Dimensions:</span> Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -712,6 +699,171 @@ const ThermalInspectionForm = () => {
                                     )}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 3: Last Month */}
+                        <div className='space-y-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Last Month</h3>
+                            
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        kVA
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='lastMonthKVA'
+                                        value={formData.lastMonthKVA}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter Value'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Date
+                                    </label>
+                                    <input
+                                        type='date'
+                                        name='lastMonthDate'
+                                        value={formData.lastMonthDate}
+                                        onChange={handleFormInputChange}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Time
+                                    </label>
+                                    <select
+                                        name='lastMonthTime'
+                                        value={formData.lastMonthTime}
+                                        onChange={handleFormInputChange}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    >
+                                        <option value=''>Select Time</option>
+                                        <option value='Morning'>Morning</option>
+                                        <option value='Afternoon'>Afternoon</option>
+                                        <option value='Evening'>Evening</option>
+                                        <option value='Night'>Night</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 4: Current Month */}
+                        <div className='space-y-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Current Month</h3>
+                            
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Current Month kVA
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='currentMonthKVA'
+                                        value={formData.currentMonthKVA}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter Value'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Baseline Condition
+                                    </label>
+                                    <select
+                                        name='baselineCondition'
+                                        value={formData.baselineCondition}
+                                        onChange={handleFormInputChange}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    >
+                                        <option value=''>Select Weather</option>
+                                        <option value='Sunny'>Sunny</option>
+                                        <option value='Cloudy'>Cloudy</option>
+                                        <option value='Rainy'>Rainy</option>
+                                        <option value='Windy'>Windy</option>
+                                        <option value='Foggy'>Foggy</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Transformer Type
+                                    </label>
+                                    <select
+                                        name='transformerType'
+                                        value={formData.transformerType}
+                                        onChange={handleFormInputChange}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    >
+                                        <option value=''>Select Type</option>
+                                        <option value='Distribution'>Distribution</option>
+                                        <option value='Power'>Power</option>
+                                        <option value='Instrument'>Instrument</option>
+                                        <option value='Auto'>Auto</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className='border-t border-gray-300 my-6'></div>
+
+                        {/* Section 5: Meter Details */}
+                        <div className='space-y-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Meter Details</h3>
+                            
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Serial Number
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='meterSerialNumber'
+                                        value={formData.meterSerialNumber}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter Serial Number'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Meter CT Ratio
+                                    </label>
+                                    <div className='relative'>
+                                        <input
+                                            type='text'
+                                            name='meterCTRatio'
+                                            value={formData.meterCTRatio}
+                                            onChange={handleFormInputChange}
+                                            placeholder='Enter Value'
+                                            className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        />
+                                        <span className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500'>/5A</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Make
+                                    </label>
+                                    <input
+                                        type='text'
+                                        name='meterMake'
+                                        value={formData.meterMake}
+                                        onChange={handleFormInputChange}
+                                        placeholder='Enter Make'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
