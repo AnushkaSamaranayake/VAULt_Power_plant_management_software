@@ -370,10 +370,69 @@ const ThermalInspectionForm = () => {
                 pdf.text('Thermal Analysis Image', margin, yPosition);
                 yPosition += 8;
                 
-                const imgData = imageRef.current.src;
                 const imgWidth = 120;
                 const imgX = (pageWidth - imgWidth) / 2;
                 
+                // Create a temporary canvas to combine image and bounding boxes
+                const tempCanvas = document.createElement('canvas');
+                const image = imageRef.current;
+                
+                // Get natural and target dimensions
+                const naturalWidth = image.naturalWidth;
+                const naturalHeight = image.naturalHeight;
+                
+                // Set canvas to natural size for high quality
+                tempCanvas.width = naturalWidth;
+                tempCanvas.height = naturalHeight;
+                
+                const ctx = tempCanvas.getContext('2d');
+                
+                // Draw the thermal image at natural size
+                ctx.drawImage(image, 0, 0, naturalWidth, naturalHeight);
+                
+                // Draw bounding boxes if they exist
+                if (boundingBoxes.length > 0) {
+                    boundingBoxes.forEach((pred, index) => {
+                        // Bounding box coordinates are already in natural image dimensions
+                        const [x1, y1, x2, y2] = pred.box;
+                        const x = x1;
+                        const y = y1;
+                        const width = x2 - x1;
+                        const height = y2 - y1;
+                        
+                        // Set box color based on class
+                        let color;
+                        if (pred.class === 0) {
+                            color = '#ef4444'; // Red for Faulty
+                        } else if (pred.class === 1) {
+                            color = '#10b981'; // Green for Normal
+                        } else {
+                            color = '#f59e0b'; // Orange for Potentially Faulty
+                        }
+                        
+                        // Draw bounding box with appropriate line width for natural size
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = Math.max(3, naturalWidth / 200); // Scale line width
+                        ctx.strokeRect(x, y, width, height);
+                        
+                        // Draw numbered badge as circle
+                        const badgeRadius = Math.max(12, naturalWidth / 100);
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(x + badgeRadius, y + badgeRadius, badgeRadius, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Draw number
+                        ctx.fillStyle = 'white';
+                        ctx.font = `bold ${Math.max(14, naturalWidth / 70)}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(String(index + 1), x + badgeRadius, y + badgeRadius);
+                    });
+                }
+                
+                // Convert canvas to image data and add to PDF
+                const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
                 pdf.addImage(imgData, 'JPEG', imgX, yPosition, imgWidth, imgHeight);
                 yPosition += imgHeight + 8;
             } catch (error) {
