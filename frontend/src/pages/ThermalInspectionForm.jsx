@@ -61,6 +61,8 @@ const ThermalInspectionForm = () => {
     });
 
     const [isEditing, setIsEditing] = useState(true);
+    const [showPrintPreview, setShowPrintPreview] = useState(false);
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
 
     useEffect(() => {
         fetchInspectionData();
@@ -227,6 +229,35 @@ const ThermalInspectionForm = () => {
     };
 
     const handlePrintReport = async () => {
+        try {
+            const pdfBlob = await generatePDF();
+            const url = URL.createObjectURL(pdfBlob);
+            setPdfPreviewUrl(url);
+            setShowPrintPreview(true);
+        } catch (error) {
+            console.error('Error generating PDF preview:', error);
+            alert('Failed to generate PDF preview');
+        }
+    };
+
+    const handleExportPDF = () => {
+        if (pdfPreviewUrl) {
+            const link = document.createElement('a');
+            link.href = pdfPreviewUrl;
+            link.download = `Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`;
+            link.click();
+        }
+    };
+
+    const handleClosePreview = () => {
+        setShowPrintPreview(false);
+        if (pdfPreviewUrl) {
+            URL.revokeObjectURL(pdfPreviewUrl);
+            setPdfPreviewUrl(null);
+        }
+    };
+
+    const generatePDF = async () => {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
@@ -469,6 +500,10 @@ const ThermalInspectionForm = () => {
         // Check if we need a new page for remaining sections
         checkPageBreak(100);
 
+        // Grey line separator
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
         // Section 3: Last Month
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
@@ -476,20 +511,26 @@ const ThermalInspectionForm = () => {
         yPosition += 8;
 
         pdf.setFontSize(12);
+        
+        // kVA
         pdf.setFont('helvetica', 'bold');
         pdf.text('kVA', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
         pdf.text(formData.lastMonthKVA || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Date
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Date', 80, yPosition);
+        pdf.text('Date', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.lastMonthDate || 'N/A', 80 + 15, yPosition);
+        pdf.text(formData.lastMonthDate || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Time
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Time', 145, yPosition);
+        pdf.text('Time', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.lastMonthTime || 'N/A', 145 + 15, yPosition);
+        pdf.text(formData.lastMonthTime || 'N/A', margin + 50, yPosition);
         yPosition += 12;
 
         // Grey line separator
@@ -558,7 +599,9 @@ const ThermalInspectionForm = () => {
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
 
-        checkPageBreak(80); // Check space for Work Content and After Inspection Report
+        // Force new page for Work Content section to ensure it has enough space
+        pdf.addPage();
+        yPosition = margin;
 
         // Section 6: Work Content and After Inspection Report
         pdf.setFontSize(14);
@@ -658,6 +701,20 @@ const ThermalInspectionForm = () => {
         pdf.text('Time: ' + (formData.afterThermalTime || 'Not set'), 120, yPosition);
         yPosition += 12;
 
+        // Grey line separator at the end
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 8;
+
+        // Inspection completion timestamp
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Inspection Completed On:', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        const completionDate = formData.afterThermalDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const completionTime = formData.afterThermalTime || new Date().toTimeString().slice(0, 5);
+        pdf.text(`${completionDate} at ${completionTime}`, margin + 55, yPosition);
+        yPosition += 12;
+
         // Grey line separator
         pdf.line(margin, yPosition, pageWidth - margin, yPosition);
         yPosition += 8;
@@ -698,8 +755,8 @@ const ThermalInspectionForm = () => {
         pdf.text('Y:', 70, yPosition);
         pdf.text('B:', 115, yPosition);
 
-        // Save the PDF
-        pdf.save(`Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`);
+        // Return the PDF as a blob
+        return pdf.output('blob');
     };
 
 
@@ -1679,6 +1736,45 @@ const ThermalInspectionForm = () => {
                     </form>
                 </div>
             </div>
+
+            {/* Print Preview Modal */}
+            {showPrintPreview && (
+                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+                    <div className='bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col'>
+                        {/* Modal Header */}
+                        <div className='px-6 py-4 border-b border-gray-200'>
+                            <h2 className='text-xl font-semibold text-gray-800'>Print Preview</h2>
+                        </div>
+
+                        {/* PDF Preview */}
+                        <div className='flex-1 overflow-auto p-4 bg-gray-100'>
+                            {pdfPreviewUrl && (
+                                <iframe
+                                    src={pdfPreviewUrl}
+                                    className='w-full h-full border-0 rounded shadow-lg bg-white'
+                                    title='PDF Preview'
+                                />
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className='px-6 py-4 border-t border-gray-200 flex justify-end gap-3'>
+                            <button
+                                onClick={handleClosePreview}
+                                className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={handleExportPDF}
+                                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            >
+                                Export PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Footer />
         </>
     );
