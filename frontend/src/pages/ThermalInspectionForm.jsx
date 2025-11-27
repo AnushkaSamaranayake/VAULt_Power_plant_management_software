@@ -45,7 +45,19 @@ const ThermalInspectionForm = () => {
         meterCTRatio: '',
         meterMake: '',
         afterThermalDate: '',
-        afterThermalTime: ''
+        afterThermalTime: '',
+        workContent: [
+            { c: true, ci: true, t: true, r: true, other: '' },
+            { c: true, ci: true, t: true, r: true, other: '' },
+            { c: true, ci: true, t: true, r: true, other: '' },
+            { c: false, ci: false, t: false, r: false, other: '' }
+        ],
+        inspectionReport: [
+            { ok: true, notOk: false, irNo: '' },
+            { ok: true, notOk: false, irNo: '' },
+            { ok: true, notOk: false, irNo: '' },
+            { ok: true, notOk: false, irNo: '' }
+        ]
     });
 
     const [isEditing, setIsEditing] = useState(true);
@@ -177,6 +189,24 @@ const ThermalInspectionForm = () => {
         }));
     };
 
+    const handleWorkContentChange = (index, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            workContent: prev.workContent.map((row, idx) => 
+                idx === index ? { ...row, [field]: value } : row
+            )
+        }));
+    };
+
+    const handleInspectionReportChange = (index, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            inspectionReport: prev.inspectionReport.map((row, idx) => 
+                idx === index ? { ...row, [field]: value } : row
+            )
+        }));
+    };
+
     const handleSave = () => {
         const now = new Date();
         const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -230,47 +260,56 @@ const ThermalInspectionForm = () => {
         pdf.text('Basic Information', margin, yPosition);
         yPosition += 8;
 
-        // Row 1: Branch, Transformer No, Pole No
         pdf.setFontSize(12);
+        
+        // Branch
         pdf.setFont('helvetica', 'bold');
         pdf.text('Branch', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
         pdf.text(transformer?.branch || 'N/A', margin + 50, yPosition);
-        
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Transformer No.', 80, yPosition);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(inspection?.transformerNo || 'N/A', 80 + 38, yPosition);
-        
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Pole No.', 145, yPosition);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(String(transformer?.poleNo || 'N/A'), 145 + 25, yPosition);
-        yPosition += 8;
+        yPosition += 7;
 
-        // Row 2: Location Details
+        // Transformer No
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Transformer No.', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(inspection?.transformerNo || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
+        
+        // Pole No
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Pole No.', margin, yPosition);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(String(transformer?.poleNo || 'N/A'), margin + 50, yPosition);
+        yPosition += 7;
+
+        // Location Details
         pdf.setFont('helvetica', 'bold');
         pdf.text('Location Details', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
         const locationText = transformer?.location || 'N/A';
         pdf.text(locationText, margin + 50, yPosition, { maxWidth: pageWidth - margin - 65 });
-        yPosition += 8;
+        yPosition += 7;
 
-        // Row 3: Date, Time, Inspected By
+        // Date of Inspection
         pdf.setFont('helvetica', 'bold');
         pdf.text('Date of Inspection', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
         pdf.text(formData.dateOfInspection || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Time
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Time', 80, yPosition);
+        pdf.text('Time', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.timeOfInspection || 'N/A', 80 + 15, yPosition);
+        pdf.text(formData.timeOfInspection || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Inspected By
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Inspected By', 145, yPosition);
+        pdf.text('Inspected By', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.inspectedBy || 'N/A', 145 + 30, yPosition);
+        pdf.text(formData.inspectedBy || 'N/A', margin + 50, yPosition);
         yPosition += 12;
 
         // Grey line separator
@@ -284,20 +323,26 @@ const ThermalInspectionForm = () => {
         yPosition += 8;
 
         pdf.setFontSize(12);
+        
+        // Right
         pdf.setFont('helvetica', 'bold');
         pdf.text('Right', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
         pdf.text(formData.baselineImagingRight || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Left
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Left', 80, yPosition);
+        pdf.text('Left', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.baselineImagingLeft || 'N/A', 80 + 15, yPosition);
+        pdf.text(formData.baselineImagingLeft || 'N/A', margin + 50, yPosition);
+        yPosition += 7;
         
+        // Front
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Front', 145, yPosition);
+        pdf.text('Front', margin, yPosition);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(formData.baselineImagingFront || 'N/A', 145 + 18, yPosition);
+        pdf.text(formData.baselineImagingFront || 'N/A', margin + 50, yPosition);
         yPosition += 10;
 
         // Thermal Analysis Image
@@ -340,14 +385,7 @@ const ThermalInspectionForm = () => {
                 pdf.text(`Error ${idx + 1}:`, margin + 5, yPosition);
                 pdf.setFont('helvetica', 'normal');
                 pdf.text(`${className} - Confidence: ${confidence}%`, margin + 25, yPosition);
-                yPosition += 5;
-                
-                pdf.setFontSize(10);
-                pdf.text(`Box Coordinates: X1: ${pred.box[0].toFixed(2)}, Y1: ${pred.box[1].toFixed(2)}, X2: ${pred.box[2].toFixed(2)}, Y2: ${pred.box[3].toFixed(2)}`, margin + 10, yPosition);
-                yPosition += 5;
-                pdf.text(`Dimensions: Width: ${(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: ${(pred.box[3] - pred.box[1]).toFixed(2)}px`, margin + 10, yPosition);
                 yPosition += 7;
-                pdf.setFontSize(12);
             });
         }
 
@@ -444,21 +482,95 @@ const ThermalInspectionForm = () => {
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Work Content and After Inspection Report', margin, yPosition);
-        yPosition += 8;
+        yPosition += 10;
 
+        // Work Content Table
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Work Content', margin, yPosition);
         yPosition += 7;
 
-        pdf.setFont('helvetica', 'normal');
-        pdf.text('C- Check, CI- Clean, T- Tight, R- Replace', margin + 5, yPosition);
-        yPosition += 8;
+        // Work Content Table Headers
+        pdf.setFontSize(10);
+        const wcStartX = margin + 5;
+        const wcColWidths = [15, 15, 15, 15, 15, 60];
+        let wcX = wcStartX;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('No.', wcX, yPosition);
+        wcX += wcColWidths[0];
+        pdf.text('C', wcX, yPosition);
+        wcX += wcColWidths[1];
+        pdf.text('CI', wcX, yPosition);
+        wcX += wcColWidths[2];
+        pdf.text('T', wcX, yPosition);
+        wcX += wcColWidths[3];
+        pdf.text('R', wcX, yPosition);
+        wcX += wcColWidths[4];
+        pdf.text('Other', wcX, yPosition);
+        yPosition += 6;
 
+        // Work Content Data Rows
+        pdf.setFont('helvetica', 'normal');
+        formData.workContent.forEach((row, idx) => {
+            wcX = wcStartX;
+            pdf.text(String(idx + 1), wcX, yPosition);
+            wcX += wcColWidths[0];
+            pdf.text(row.c ? '✓' : '□', wcX, yPosition);
+            wcX += wcColWidths[1];
+            pdf.text(row.ci ? '✓' : '□', wcX, yPosition);
+            wcX += wcColWidths[2];
+            pdf.text(row.t ? '✓' : '□', wcX, yPosition);
+            wcX += wcColWidths[3];
+            pdf.text(row.r ? '✓' : '□', wcX, yPosition);
+            wcX += wcColWidths[4];
+            pdf.text(row.other || '-', wcX, yPosition);
+            yPosition += 6;
+        });
+
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text('C- Check, CI- Clean, T- Tight, R- Replace', margin + 5, yPosition);
+        yPosition += 10;
+
+        // After Inspection Report Table
+        pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
         pdf.text('After Inspection Report', margin, yPosition);
         yPosition += 7;
 
+        // After Inspection Report Table Headers
+        pdf.setFontSize(10);
+        const airStartX = margin + 5;
+        const airColWidths = [15, 20, 25, 60];
+        let airX = airStartX;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('No.', airX, yPosition);
+        airX += airColWidths[0];
+        pdf.text('OK', airX, yPosition);
+        airX += airColWidths[1];
+        pdf.text('NOT OK', airX, yPosition);
+        airX += airColWidths[2];
+        pdf.text('IR No(s).', airX, yPosition);
+        yPosition += 6;
+
+        // After Inspection Report Data Rows
+        pdf.setFont('helvetica', 'normal');
+        formData.inspectionReport.forEach((row, idx) => {
+            airX = airStartX;
+            pdf.text(String(idx + 1), airX, yPosition);
+            airX += airColWidths[0];
+            pdf.text(row.ok ? '✓' : '□', airX, yPosition);
+            airX += airColWidths[1];
+            pdf.text(row.notOk ? '✓' : '□', airX, yPosition);
+            airX += airColWidths[2];
+            pdf.text(row.irNo || '-', airX, yPosition);
+            yPosition += 6;
+        });
+
+        yPosition += 5;
+        pdf.setFontSize(10);
         pdf.setFont('helvetica', 'normal');
         pdf.text('After Thermal Date: ' + (formData.afterThermalDate || 'Not set'), margin + 5, yPosition);
         pdf.text('Time: ' + (formData.afterThermalTime || 'Not set'), 120, yPosition);
@@ -1209,47 +1321,48 @@ const ThermalInspectionForm = () => {
                                     <h4 className='text-sm font-medium text-gray-700'>Work Content</h4>
                                 
                                 <div className='space-y-3'>
-                                    {[1, 2, 3, 4].map((rowNum) => (
-                                        <div key={rowNum} className='grid grid-cols-7 gap-2 items-center'>
+                                    {formData.workContent.map((row, idx) => (
+                                        <div key={idx} className='grid grid-cols-7 gap-2 items-center'>
                                             <div className='text-center text-sm font-medium text-gray-700'>
-                                                {rowNum}
+                                                {idx + 1}
                                             </div>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`workContent_${rowNum}_C`}
+                                                    checked={row.c}
+                                                    onChange={(e) => handleWorkContentChange(idx, 'c', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
-                                                    defaultChecked={rowNum <= 3}
                                                 />
                                             </div>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`workContent_${rowNum}_CI`}
+                                                    checked={row.ci}
+                                                    onChange={(e) => handleWorkContentChange(idx, 'ci', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
-                                                    defaultChecked={rowNum <= 3}
                                                 />
                                             </div>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`workContent_${rowNum}_T`}
+                                                    checked={row.t}
+                                                    onChange={(e) => handleWorkContentChange(idx, 't', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
-                                                    defaultChecked={rowNum <= 3}
                                                 />
                                             </div>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`workContent_${rowNum}_R`}
+                                                    checked={row.r}
+                                                    onChange={(e) => handleWorkContentChange(idx, 'r', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
-                                                    defaultChecked={rowNum <= 3}
                                                 />
                                             </div>
                                             <div className='col-span-2'>
                                                 <input
                                                     type='text'
-                                                    name={`workContent_${rowNum}_Other`}
+                                                    value={row.other}
+                                                    onChange={(e) => handleWorkContentChange(idx, 'other', e.target.value)}
                                                     placeholder='-'
                                                     className='w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                                 />
@@ -1277,27 +1390,29 @@ const ThermalInspectionForm = () => {
                                 <h4 className='text-sm font-medium text-gray-700'>After Inspection Report</h4>
                                 
                                 <div className='space-y-3'>
-                                    {[1, 2, 3, 4].map((rowNum) => (
-                                        <div key={rowNum} className='grid grid-cols-4 gap-3 items-center'>
+                                    {formData.inspectionReport.map((row, idx) => (
+                                        <div key={idx} className='grid grid-cols-4 gap-3 items-center'>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`afterInspection_${rowNum}_OK`}
+                                                    checked={row.ok}
+                                                    onChange={(e) => handleInspectionReportChange(idx, 'ok', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
-                                                    defaultChecked={true}
                                                 />
                                             </div>
                                             <div className='flex justify-center'>
                                                 <input
                                                     type='checkbox'
-                                                    name={`afterInspection_${rowNum}_NOTOK`}
+                                                    checked={row.notOk}
+                                                    onChange={(e) => handleInspectionReportChange(idx, 'notOk', e.target.checked)}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
                                             <div className='col-span-2'>
                                                 <input
                                                     type='text'
-                                                    name={`afterInspection_${rowNum}_IRNo`}
+                                                    value={row.irNo}
+                                                    onChange={(e) => handleInspectionReportChange(idx, 'irNo', e.target.value)}
                                                     placeholder='-'
                                                     className='w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                                 />
