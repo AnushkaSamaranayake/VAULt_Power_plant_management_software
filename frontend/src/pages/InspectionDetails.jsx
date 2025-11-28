@@ -15,6 +15,8 @@ const InspectionDetails = () => {
     const [inspection, setInspection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [formStatus, setFormStatus] = useState({ isFinalized: false });
+    const [loadingFormStatus, setLoadingFormStatus] = useState(true);
 
     const fetchInspection = async () => {
         try {
@@ -29,13 +31,33 @@ const InspectionDetails = () => {
         }
     };
 
+    const fetchFormStatus = async () => {
+        try {
+            setLoadingFormStatus(true);
+            const response = await axios.get(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/status`);
+            setFormStatus(response.data);
+        } catch (error) {
+            console.error("Error fetching form status:", error);
+            // If form doesn't exist yet, it's not finalized
+            setFormStatus({ isFinalized: false });
+        } finally {
+            setLoadingFormStatus(false);
+        }
+    };
+
     useEffect(() => {
         fetchInspection();
+        fetchFormStatus();
     }, [inspectionNo]);
 
     const handleInspectionUpdate = (updatedInspection) => {
         console.log("Updated inspection after image upload:", updatedInspection);
         setInspection(updatedInspection);
+    };
+
+    const handleFormStatusUpdate = () => {
+        // Refresh form status when form is saved
+        fetchFormStatus();
     };
 
     if (loading) {
@@ -87,9 +109,15 @@ const InspectionDetails = () => {
                         <button 
                             onClick={() => navigate(`/inspection/${inspectionNo}/form`)}
                             className='flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium'
+                            disabled={loadingFormStatus}
                         >
                             <FileText className='w-5 h-5' />
-                            Fill Inspection Form
+                            {loadingFormStatus 
+                                ? 'Loading...' 
+                                : formStatus.isFinalized 
+                                    ? 'Show Inspection Form' 
+                                    : 'Fill Inspection Form'
+                            }
                         </button>
                         <button 
                             className='flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium'

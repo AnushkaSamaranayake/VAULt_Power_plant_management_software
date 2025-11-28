@@ -101,6 +101,17 @@ public class InspectionReportFormService {
     }
 
     /**
+     * Check if inspection report form is finalized.
+     */
+    public boolean isFormFinalized(Long inspectionNo) {
+        logger.info("Checking if inspection report form is finalized for inspection: {}", inspectionNo);
+        
+        return reportFormRepository.findByInspectionNo(inspectionNo)
+                .map(InspectionReportForm::getIsFinalized)
+                .orElse(false);
+    }
+
+    /**
      * Delete inspection report form.
      */
     @Transactional

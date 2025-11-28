@@ -90,6 +90,25 @@ public class InspectionReportFormController {
     }
 
     /**
+     * Check if inspection report form is finalized (manually saved).
+     * 
+     * GET /api/inspection-report-forms/{inspectionNo}/status
+     */
+    @GetMapping("/{inspectionNo}/status")
+    public ResponseEntity<?> getReportFormStatus(@PathVariable Long inspectionNo) {
+        logger.info("Get report form status request for inspection: {}", inspectionNo);
+        
+        try {
+            boolean isFinalized = reportFormService.isFormFinalized(inspectionNo);
+            return ResponseEntity.ok(new FormStatusResponse(isFinalized));
+        } catch (Exception e) {
+            logger.error("Error checking report form status for inspection {}: {}", inspectionNo, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error checking form status: " + e.getMessage());
+        }
+    }
+
+    /**
      * Delete inspection report form.
      * 
      * DELETE /api/inspection-report-forms/{inspectionNo}
@@ -105,6 +124,21 @@ public class InspectionReportFormController {
             logger.error("Error deleting report form for inspection {}: {}", inspectionNo, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error deleting report form: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Response class for form status
+     */
+    public static class FormStatusResponse {
+        public boolean isFinalized;
+        
+        public FormStatusResponse(boolean isFinalized) {
+            this.isFinalized = isFinalized;
+        }
+        
+        public boolean isFinalized() {
+            return isFinalized;
         }
     }
 }

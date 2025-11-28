@@ -85,14 +85,62 @@ const ThermalInspectionForm = () => {
 
     // Auto-save effect with debouncing
     useEffect(() => {
-        if (!inspection) return; // Don't auto-save until inspection is loaded
+        console.log('Auto-save effect triggered', { 
+            hasInspection: !!inspection,
+            inspectionNo: inspectionNo,
+            workContent: formData.workContent,
+            inspectionReport: formData.inspectionReport
+        });
+        
+        if (!inspection) {
+            console.log('Skipping auto-save: no inspection loaded yet');
+            return; // Don't auto-save until inspection is loaded
+        }
 
+        console.log('Setting auto-save timer...');
         const debounceTimer = setTimeout(() => {
+            console.log('Auto-save timer fired, calling autoSaveFormData');
             autoSaveFormData();
         }, 2000); // Auto-save after 2 seconds of inactivity
 
-        return () => clearTimeout(debounceTimer);
-    }, [formData, inspection]);
+        return () => {
+            console.log('Clearing auto-save timer');
+            clearTimeout(debounceTimer);
+        };
+    }, [
+        formData.dateOfInspection,
+        formData.timeOfInspection,
+        formData.inspectedBy,
+        formData.baselineImagingRight,
+        formData.baselineImagingLeft,
+        formData.baselineImagingFront,
+        formData.lastMonthKVA,
+        formData.lastMonthDate,
+        formData.lastMonthTime,
+        formData.currentMonthKVA,
+        formData.baselineCondition,
+        formData.transformerType,
+        formData.meterSerialNumber,
+        formData.meterCTRatio,
+        formData.meterMake,
+        formData.afterThermalDate,
+        formData.afterThermalTime,
+        JSON.stringify(formData.workContent), // Serialize array to detect changes
+        JSON.stringify(formData.inspectionReport), // Serialize array to detect changes
+        formData.firstInspectionVR,
+        formData.firstInspectionVY,
+        formData.firstInspectionVB,
+        formData.firstInspectionIR,
+        formData.firstInspectionIY,
+        formData.firstInspectionIB,
+        formData.secondInspectionVR,
+        formData.secondInspectionVY,
+        formData.secondInspectionVB,
+        formData.secondInspectionIR,
+        formData.secondInspectionIY,
+        formData.secondInspectionIB,
+        inspection
+    ]);
 
     const fetchInspectionData = async () => {
         try {
@@ -139,9 +187,16 @@ const ThermalInspectionForm = () => {
                     ...prev,
                     ...savedData
                 }));
+                
+                // If form is finalized, set to read-only mode
+                if (response.data.isFinalized) {
+                    setIsEditing(false);
+                }
+                
                 console.log('Loaded saved form data', {
                     workContent: savedData.workContent,
-                    inspectionReport: savedData.inspectionReport
+                    inspectionReport: savedData.inspectionReport,
+                    isFinalized: response.data.isFinalized
                 });
             }
         } catch (error) {
@@ -154,6 +209,7 @@ const ThermalInspectionForm = () => {
     };
 
     const autoSaveFormData = async () => {
+        console.log('autoSaveFormData called');
         try {
             const dataToSave = {
                 ...formData,
@@ -161,7 +217,12 @@ const ThermalInspectionForm = () => {
                 inspectionReport: JSON.stringify(formData.inspectionReport)
             };
 
-            await axios.post(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/auto-save`, dataToSave);
+            console.log('Sending auto-save request to:', `http://localhost:8080/api/inspection-report-forms/${inspectionNo}/auto-save`);
+            console.log('Data being sent:', dataToSave);
+
+            const response = await axios.post(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/auto-save`, dataToSave);
+            
+            console.log('Auto-save response:', response.data);
             console.log('Form auto-saved successfully', {
                 workContent: formData.workContent,
                 inspectionReport: formData.inspectionReport,
@@ -184,6 +245,8 @@ const ThermalInspectionForm = () => {
             });
         } catch (error) {
             console.error('Error auto-saving form:', error);
+            console.error('Error details:', error.response?.data);
+            console.error('Error status:', error.response?.status);
             // Silent failure for auto-save - don't disrupt user
         }
     };
@@ -323,6 +386,9 @@ const ThermalInspectionForm = () => {
             
             setIsEditing(false);
             alert('Form saved and finalized successfully!');
+            
+            // Navigate back to inspection details page
+            navigate(`/inspections/${inspectionNo}`);
         } catch (error) {
             console.error('Error saving form:', error);
             alert('Failed to save form. Please try again.');
@@ -1237,6 +1303,8 @@ const ThermalInspectionForm = () => {
                                             name='dateOfInspection'
                                             value={formData.dateOfInspection}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
+                                            disabled={!isEditing}
                                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
                                     </div>
@@ -1250,6 +1318,8 @@ const ThermalInspectionForm = () => {
                                         name='timeOfInspection'
                                         value={formData.timeOfInspection}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
+                                        disabled={!isEditing}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
                                 </div>
@@ -1262,6 +1332,7 @@ const ThermalInspectionForm = () => {
                                         name='inspectedBy'
                                         value={formData.inspectedBy}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Inspector ID'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1286,6 +1357,7 @@ const ThermalInspectionForm = () => {
                                         name='baselineImagingRight'
                                         value={formData.baselineImagingRight}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter IR value'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1299,6 +1371,7 @@ const ThermalInspectionForm = () => {
                                         name='baselineImagingLeft'
                                         value={formData.baselineImagingLeft}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter IR value'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1312,6 +1385,7 @@ const ThermalInspectionForm = () => {
                                         name='baselineImagingFront'
                                         value={formData.baselineImagingFront}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter IR value'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1411,6 +1485,7 @@ const ThermalInspectionForm = () => {
                                         name='lastMonthKVA'
                                         value={formData.lastMonthKVA}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter Value'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1424,6 +1499,7 @@ const ThermalInspectionForm = () => {
                                         name='lastMonthDate'
                                         value={formData.lastMonthDate}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
                                 </div>
@@ -1436,6 +1512,7 @@ const ThermalInspectionForm = () => {
                                         name='lastMonthTime'
                                         value={formData.lastMonthTime}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
                                 </div>
@@ -1459,6 +1536,7 @@ const ThermalInspectionForm = () => {
                                         name='currentMonthKVA'
                                         value={formData.currentMonthKVA}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter Value'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1471,6 +1549,7 @@ const ThermalInspectionForm = () => {
                                         name='baselineCondition'
                                         value={formData.baselineCondition}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     >
                                         <option value=''>Select Weather</option>
@@ -1489,6 +1568,7 @@ const ThermalInspectionForm = () => {
                                         name='transformerType'
                                         value={formData.transformerType}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     >
                                         <option value=''>Select Type</option>
@@ -1518,6 +1598,7 @@ const ThermalInspectionForm = () => {
                                         name='meterSerialNumber'
                                         value={formData.meterSerialNumber}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter Serial Number'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1532,6 +1613,7 @@ const ThermalInspectionForm = () => {
                                             name='meterCTRatio'
                                             value={formData.meterCTRatio}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1547,6 +1629,7 @@ const ThermalInspectionForm = () => {
                                         name='meterMake'
                                         value={formData.meterMake}
                                         onChange={handleFormInputChange}
+                                        disabled={!isEditing}
                                         placeholder='Enter Make'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                     />
@@ -1577,6 +1660,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.c}
                                                     onChange={(e) => handleWorkContentChange(idx, 'c', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1585,6 +1669,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.ci}
                                                     onChange={(e) => handleWorkContentChange(idx, 'ci', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1593,6 +1678,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.t}
                                                     onChange={(e) => handleWorkContentChange(idx, 't', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1601,6 +1687,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.r}
                                                     onChange={(e) => handleWorkContentChange(idx, 'r', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1609,6 +1696,7 @@ const ThermalInspectionForm = () => {
                                                     type='text'
                                                     value={row.other}
                                                     onChange={(e) => handleWorkContentChange(idx, 'other', e.target.value)}
+                                                    disabled={!isEditing}
                                                     placeholder='-'
                                                     className='w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                                 />
@@ -1643,6 +1731,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.ok}
                                                     onChange={(e) => handleInspectionReportChange(idx, 'ok', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1651,6 +1740,7 @@ const ThermalInspectionForm = () => {
                                                     type='checkbox'
                                                     checked={row.notOk}
                                                     onChange={(e) => handleInspectionReportChange(idx, 'notOk', e.target.checked)}
+                                                    disabled={!isEditing}
                                                     className='w-4 h-4 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500'
                                                 />
                                             </div>
@@ -1709,6 +1799,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionVR'
                                             value={formData.firstInspectionVR}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1717,6 +1808,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionVY'
                                             value={formData.firstInspectionVY}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1725,6 +1817,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionVB'
                                             value={formData.firstInspectionVB}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1738,6 +1831,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionIR'
                                             value={formData.firstInspectionIR}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1746,6 +1840,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionIY'
                                             value={formData.firstInspectionIY}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1754,6 +1849,7 @@ const ThermalInspectionForm = () => {
                                             name='firstInspectionIB'
                                             value={formData.firstInspectionIB}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1782,6 +1878,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionVR'
                                             value={formData.secondInspectionVR}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1790,6 +1887,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionVY'
                                             value={formData.secondInspectionVY}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1798,6 +1896,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionVB'
                                             value={formData.secondInspectionVB}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1811,6 +1910,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionIR'
                                             value={formData.secondInspectionIR}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1819,6 +1919,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionIY'
                                             value={formData.secondInspectionIY}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
@@ -1827,6 +1928,7 @@ const ThermalInspectionForm = () => {
                                             name='secondInspectionIB'
                                             value={formData.secondInspectionIB}
                                             onChange={handleFormInputChange}
+                                            disabled={!isEditing}
                                             placeholder='Enter Value'
                                             className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                         />
