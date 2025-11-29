@@ -368,9 +368,18 @@ const ThermalInspectionForm = () => {
     const handleInspectionReportChange = (index, field, value) => {
         setFormData(prev => ({
             ...prev,
-            inspectionReport: prev.inspectionReport.map((row, idx) => 
-                idx === index ? { ...row, [field]: value } : row
-            )
+            inspectionReport: prev.inspectionReport.map((row, idx) => {
+                if (idx === index) {
+                    // Make OK and NOT OK mutually exclusive
+                    if (field === 'ok' && value === true) {
+                        return { ...row, ok: true, notOk: false };
+                    } else if (field === 'notOk' && value === true) {
+                        return { ...row, ok: false, notOk: true };
+                    }
+                    return { ...row, [field]: value };
+                }
+                return row;
+            })
         }));
     };
 
@@ -454,11 +463,36 @@ const ThermalInspectionForm = () => {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 25.4; // 1 inch = 25.4mm
-        const maxY = pageHeight - margin; // Bottom margin
+        const maxY = pageHeight - margin - 10; // Bottom margin with space for footer
         let yPosition = margin; // Start at top margin
+
+        // Generate filename for footer
+        const transformerNo = inspection?.transformerNo || 'Unknown';
+        const inspectionDate = formData.dateOfInspection.replace(/-/g, '') || 'NoDate';
+        const inspectedBy = formData.inspectedBy || 'Unknown';
+        const fileName = `${transformerNo}_${inspectionDate}_${inspectedBy}.pdf`;
+
+        const addFooter = () => {
+            const currentPage = pdf.internal.getCurrentPageInfo().pageNumber;
+            const totalPages = pdf.internal.getNumberOfPages();
+            
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(128, 128, 128);
+            
+            // Left corner - filename
+            pdf.text(fileName, margin, pageHeight - 15);
+            
+            // Right corner - page number
+            pdf.text(`Page ${currentPage} of ${totalPages}`, pageWidth - margin - 30, pageHeight - 15);
+            
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
+        };
 
         const checkPageBreak = (requiredSpace) => {
             if (yPosition + requiredSpace > maxY) {
+                addFooter();
                 pdf.addPage();
                 yPosition = margin;
                 return true;
@@ -976,6 +1010,13 @@ const ThermalInspectionForm = () => {
         pdf.text(formData.secondInspectionIR || '-', secondTableStartX + colWidth, yPosition);
         pdf.text(formData.secondInspectionIY || '-', secondTableStartX + colWidth * 2, yPosition);
         pdf.text(formData.secondInspectionIB || '-', secondTableStartX + colWidth * 3, yPosition);
+
+        // Add footer to all pages
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            addFooter();
+        }
 
         // Return the PDF as a blob
         return pdf.output('blob');
