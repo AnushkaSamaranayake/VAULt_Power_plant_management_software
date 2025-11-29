@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import NavigationBar from '../components/NavigationBar';
 import Footer from '../components/Footer';
+import Toast from '../components/common/Toast';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const ThermalInspectionForm = () => {
     const { inspectionNo } = useParams();
@@ -79,6 +81,8 @@ const ThermalInspectionForm = () => {
     const [showPrintPreview, setShowPrintPreview] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
     const [reportFileName, setReportFileName] = useState('');
+    const [toast, setToast] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
 
     useEffect(() => {
         fetchInspectionData();
@@ -323,22 +327,26 @@ const ThermalInspectionForm = () => {
     };
 
     const handleDeleteBaselineImage = async () => {
-        if (!window.confirm('Are you sure you want to delete the baseline image?')) {
-            return;
-        }
+        setConfirmDialog({
+            message: 'Are you sure you want to delete the baseline image?',
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                try {
+                    const response = await axios.delete(
+                        `http://localhost:8080/api/transformers/${inspection.transformerNo}/baseline-image`
+                    );
 
-        try {
-            const response = await axios.delete(
-                `http://localhost:8080/api/transformers/${inspection.transformerNo}/baseline-image`
-            );
-
-            if (response.data) {
-                setTransformer(response.data);
-            }
-        } catch (error) {
-            console.error('Error deleting baseline image:', error);
-            alert('Failed to delete baseline image. Please try again.');
-        }
+                    if (response.data) {
+                        setTransformer(response.data);
+                        setToast({ message: 'Baseline image deleted successfully!', type: 'success' });
+                    }
+                } catch (error) {
+                    console.error('Error deleting baseline image:', error);
+                    setToast({ message: 'Failed to delete baseline image. Please try again.', type: 'error' });
+                }
+            },
+            onCancel: () => setConfirmDialog(null)
+        });
     };
 
     const handleViewBaselineImage = () => {
@@ -407,13 +415,15 @@ const ThermalInspectionForm = () => {
             await axios.post(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/finalize`, dataToSave);
             
             setIsEditing(false);
-            alert('Form saved and finalized successfully!');
+            setToast({ message: 'Form saved and finalized successfully!', type: 'success' });
             
-            // Navigate back to inspection details page
-            navigate(`/inspections/${inspectionNo}`);
+            // Navigate back to inspection details page after short delay
+            setTimeout(() => {
+                navigate(`/inspections/${inspectionNo}`);
+            }, 1500);
         } catch (error) {
             console.error('Error saving form:', error);
-            alert('Failed to save form. Please try again.');
+            setToast({ message: 'Failed to save form. Please try again.', type: 'error' });
         }
     };
 
@@ -437,7 +447,7 @@ const ThermalInspectionForm = () => {
             setShowPrintPreview(true);
         } catch (error) {
             console.error('Error generating PDF preview:', error);
-            alert('Failed to generate PDF preview');
+            setToast({ message: 'Failed to generate PDF preview', type: 'error' });
         }
     };
 
@@ -2118,6 +2128,25 @@ const ThermalInspectionForm = () => {
                     </div>
                 </div>
             )}
+            
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
+            
+            {/* Confirm Dialog */}
+            {confirmDialog && (
+                <ConfirmDialog 
+                    message={confirmDialog.message}
+                    onConfirm={confirmDialog.onConfirm}
+                    onCancel={confirmDialog.onCancel}
+                />
+            )}
+            
             <Footer />
         </>
     );
