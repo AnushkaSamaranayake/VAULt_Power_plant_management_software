@@ -35,14 +35,35 @@ const BaselineAiComparisonDisplay = ({ inspection, onRefresh }) => {
     };
 
     return (
-        <div className="flex flex-col bg-white rounded-md shadow-md p-6">
+        <div className="flex flex-col bg-white rounded-md shadow-md p-6 mt-10">
             <div className="flex flex-row items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">Baseline vs AI Analysis Comparison</h2>
             </div>
 
-            {/* Side-by-Side Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Baseline Reference Image */}
+            {/* AI Analysis Status - Full Width */}
+            <div className="mb-6">
+                <AiAnalysisDisplay 
+                    inspection={inspection} 
+                    onRefresh={onRefresh}
+                    showOnlyStatus={true}
+                />
+            </div>
+
+            {/* Side-by-Side Comparison - Swapped Order */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* AI Thermal Analysis - Now on the left */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-700">AI Thermal Analysis</h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <AiAnalysisDisplay 
+                            inspection={inspection} 
+                            onRefresh={onRefresh}
+                            showOnlyImage={true}
+                        />
+                    </div>
+                </div>
+
+                {/* Baseline Reference Image - Now on the right */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-700">Baseline Reference</h3>
                     {transformer?.baselineImagePath ? (
@@ -98,17 +119,15 @@ const BaselineAiComparisonDisplay = ({ inspection, onRefresh }) => {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* AI Analysis Display */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-700">AI Thermal Analysis</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <AiAnalysisDisplay 
-                            inspection={inspection} 
-                            onRefresh={onRefresh}
-                        />
-                    </div>
-                </div>
+            {/* Detection Details - Full Width Below Images */}
+            <div className="mt-6">
+                <AiAnalysisDisplay 
+                    inspection={inspection} 
+                    onRefresh={onRefresh}
+                    showOnlyDetails={true}
+                />
             </div>
 
             {/* Interactive Image Modal */}

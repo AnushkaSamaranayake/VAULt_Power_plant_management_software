@@ -124,25 +124,3 @@ def retrain_model():
         print("Retraining failed. New weights not found.")
         print("Cleanup will not be performed since retraining was unsuccessful.")
         return False
-
-# if __name__ == "__main__":
-#     """
-#     Run retraining when script is executed directly.
-#     """
-#     print("=" * 60)
-#     print("🤖 YOLO Model Retraining with Automatic Cleanup")
-#     print("=" * 60)
-    
-#     success = retrain_model()
-    
-#     print("\n" + "=" * 60)
-#     if success:
-#         print("✅ PROCESS COMPLETED SUCCESSFULLY")
-#         print("   - Model has been retrained with latest data")
-#         print("   - Old bounding box annotations have been cleaned")
-#         print("   - System is ready for fresh annotations")
-#     else:
-#         print("❌ PROCESS FAILED")
-#         print("   - Check logs above for error details")
-#         print("   - Manual intervention may be required")
-#     print("=" * 60)

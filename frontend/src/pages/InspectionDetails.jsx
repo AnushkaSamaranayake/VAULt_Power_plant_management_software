@@ -1,7 +1,8 @@
 import React from 'react'
 import axios from 'axios'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { FileText, Printer } from 'lucide-react'
 import NavigationBar from '../components/NavigationBar'
 import Head from '../components/InspectionDetails/Head'
 import ImageUpload from '../components/InspectionDetails/ImageUpload'
@@ -10,9 +11,12 @@ import Footer from '../components/Footer'
 
 const InspectionDetails = () => {
     const { inspectionNo } = useParams();
+    const navigate = useNavigate();
     const [inspection, setInspection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [formStatus, setFormStatus] = useState({ isFinalized: false });
+    const [loadingFormStatus, setLoadingFormStatus] = useState(true);
 
     const fetchInspection = async () => {
         try {
@@ -27,13 +31,33 @@ const InspectionDetails = () => {
         }
     };
 
+    const fetchFormStatus = async () => {
+        try {
+            setLoadingFormStatus(true);
+            const response = await axios.get(`http://localhost:8080/api/inspection-report-forms/${inspectionNo}/status`);
+            setFormStatus(response.data);
+        } catch (error) {
+            console.error("Error fetching form status:", error);
+            // If form doesn't exist yet, it's not finalized
+            setFormStatus({ isFinalized: false });
+        } finally {
+            setLoadingFormStatus(false);
+        }
+    };
+
     useEffect(() => {
         fetchInspection();
+        fetchFormStatus();
     }, [inspectionNo]);
 
     const handleInspectionUpdate = (updatedInspection) => {
         console.log("Updated inspection after image upload:", updatedInspection);
         setInspection(updatedInspection);
+    };
+
+    const handleFormStatusUpdate = () => {
+        // Refresh form status when form is saved
+        fetchFormStatus();
     };
 
     if (loading) {
@@ -77,6 +101,32 @@ const InspectionDetails = () => {
                     inspection={inspection} 
                     onRefresh={fetchInspection}
                 />
+
+                {/* Thermal Image Inspection Form */}
+                <div className='flex flex-col p-6 bg-white rounded-md shadow-md mt-10'>
+                    <h2 className='text-xl font-semibold text-gray-800 mb-6'>Thermal Image Inspection Form</h2>
+                    <div className='flex gap-4'>
+                        <button 
+                            onClick={() => navigate(`/inspection/${inspectionNo}/form`)}
+                            className='flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium'
+                            disabled={loadingFormStatus}
+                        >
+                            <FileText className='w-5 h-5' />
+                            {loadingFormStatus 
+                                ? 'Loading...' 
+                                : formStatus.isFinalized 
+                                    ? 'Show Inspection Form' 
+                                    : 'Fill Inspection Form'
+                            }
+                        </button>
+                        <button 
+                            className='flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium'
+                        >
+                            <Printer className='w-5 h-5' />
+                            Print Inspection Record
+                        </button>
+                    </div>
+                </div>
             </div>
             <Footer />
         </>

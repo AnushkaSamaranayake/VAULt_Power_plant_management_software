@@ -3,7 +3,7 @@ import { Brain, AlertCircle, CheckCircle, Clock, RefreshCw, Settings, ChevronDow
 import axios from 'axios';
 import EditBoundingBoxesPopup from './EditBoundingBoxesPopup';
 
-const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
+const AiAnalysisDisplay = ({ inspection, onRefresh, showOnlyStatus = false, showOnlyImage = false, showOnlyDetails = false }) => {
     const [boundingBoxes, setBoundingBoxes] = useState([]);
     const [showBoxes, setShowBoxes] = useState(true);
     const [confidence, setConfidence] = useState(0.50);
@@ -332,6 +332,382 @@ const AiAnalysisDisplay = ({ inspection, onRefresh }) => {
         return null;
     }
 
+    // Render only AI Analysis Status
+    if (showOnlyStatus) {
+        return (
+            <>
+                <style>{`
+                    .confidence-slider::-webkit-slider-thumb {
+                        appearance: none;
+                        height: 20px;
+                        width: 20px;
+                        border-radius: 50%;
+                        background: #3B82F6;
+                        cursor: pointer;
+                        border: 2px solid #FFFFFF;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    }
+                    .confidence-slider::-moz-range-thumb {
+                        height: 20px;
+                        width: 20px;
+                        border-radius: 50%;
+                        background: #3B82F6;
+                        cursor: pointer;
+                        border: 2px solid #FFFFFF;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    }
+                `}</style>
+                {/* AI Analysis Status */}
+                <div className={`flex items-center justify-between p-4 rounded-lg border ${getStatusColor()}`}>
+                    <div className="flex items-center space-x-3">
+                        {getStatusIcon()}
+                        <div>
+                            <p className="font-semibold text-sm">AI Analysis Status</p>
+                            <p className="text-xs">{getStatusText()}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        {(getAiStatus() === 'completed' || getAiStatus() === 'failed') && (
+                            <button
+                                onClick={() => setShowSettings(!showSettings)}
+                                className="p-2 hover:bg-white hover:bg-opacity-50 rounded-full transition-colors"
+                                title="Analysis Settings"
+                            >
+                                <Settings className="w-4 h-4" />
+                            </button>
+                        )}
+                        {getAiStatus() === 'pending' && (
+                            <button
+                                onClick={onRefresh}
+                                className="p-2 hover:bg-white hover:bg-opacity-50 rounded-full transition-colors"
+                                title="Refresh"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Confidence Settings */}
+                {showSettings && (
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                        <h3 className="font-semibold text-sm text-gray-700 mb-3">Analysis Settings</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-2">
+                                    Confidence Threshold: {(confidence * 100).toFixed(0)}%
+                                </label>
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-xs text-gray-500">10%</span>
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="1.0"
+                                        step="0.05"
+                                        value={confidence}
+                                        onChange={(e) => setConfidence(parseFloat(e.target.value))}
+                                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer confidence-slider"
+                                        disabled={isReanalyzing || getAiStatus() === 'pending'}
+                                    />
+                                    <span className="text-xs text-gray-500">100%</span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Higher values detect only high-confidence anomalies. Lower values may detect more potential issues.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => handleConfidenceChange(confidence)}
+                                disabled={isReanalyzing || getAiStatus() === 'pending'}
+                                className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isReanalyzing ? 'Re-analyzing...' : 'Apply & Re-analyze'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
+        );
+    }
+
+    // Render only Analysis Image
+    if (showOnlyImage) {
+        return (
+            <>
+                {getAiStatus() === 'completed' && (
+                    <div className="space-y-3">
+                        <div className="relative rounded-lg border shadow-sm overflow-hidden">
+                            <div className="flex items-center justify-between p-3 bg-white border-b">
+                                <h3 className="text-sm font-semibold text-gray-700">Analysis Image</h3>
+                                <div className="flex items-center gap-2">
+                                    <label className="flex items-center space-x-1 cursor-pointer text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={showBoxes}
+                                            onChange={(e) => setShowBoxes(e.target.checked)}
+                                            className="w-3 h-3 text-blue-600 rounded"
+                                        />
+                                        <span className="text-gray-600">Show Boxes</span>
+                                    </label>
+                                    <button
+                                        onClick={handleEditBoundingBoxes}
+                                        className="px-3 py-1.5 rounded bg-blue-600 text-white text-xs hover:bg-blue-700"
+                                    >
+                                        Edit Bounding Boxes
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="relative">
+                                <img
+                                    ref={imageRef}
+                                    src={`http://localhost:8080/api/inspections/images/${inspection.maintenanceImagePath}`}
+                                    alt="AI Analysis"
+                                    className="w-full h-auto object-contain block"
+                                    onLoad={drawBoundingBoxes}
+                                    crossOrigin="anonymous"
+                                    style={{ maxHeight: '420px' }}
+                                />
+                                {boundingBoxes.length > 0 && (
+                                    <canvas
+                                        ref={canvasRef}
+                                        className="absolute top-0 left-0 pointer-events-none"
+                                        style={{ display: showBoxes ? 'block' : 'none' }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Analysis Summary Info - below image */}
+                        {boundingBoxes.length > 0 && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <Brain className="w-5 h-5 text-blue-600" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">
+                                                {boundingBoxes.length} anomal{boundingBoxes.length !== 1 ? 'ies' : 'y'} detected
+                                            </p>
+                                            <p className="text-xs text-gray-600">
+                                                View analysis in the comparison view above
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleExportChangeLog}
+                                            className="px-3 py-2 bg-white text-blue-700 border border-blue-300 text-xs rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1"
+                                            title="Export change log as text"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Export Change Log
+                                        </button>
+                                        <button
+                                            onClick={handleEditBoundingBoxes}
+                                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Edit Bounding Boxes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* No Detections Message */}
+                {getAiStatus() === 'completed' && boundingBoxes.length === 0 && (
+                    <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
+                        <Brain className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">No anomalies detected in this image</p>
+                    </div>
+                )}
+
+                {/* Failed Message */}
+                {getAiStatus() === 'failed' && (
+                    <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200">
+                        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                        <p className="text-sm text-red-600">AI analysis failed. Please try re-uploading the image.</p>
+                    </div>
+                )}
+
+                {/* Edit Bounding Boxes Popup */}
+                {showEditPopup && (
+                    <EditBoundingBoxesPopup
+                        inspection={inspection}
+                        boundingBoxes={boundingBoxes}
+                        onClose={() => setShowEditPopup(false)}
+                        onSave={onRefresh}
+                    />
+                )}
+            </>
+        );
+    }
+
+    // Render only Detection Details
+    if (showOnlyDetails) {
+        return (
+            <>
+                {/* Analysis Summary */}
+                {getAiStatus() === 'completed' && boundingBoxes.length > 0 && (
+                    <>
+                        {/* Detection Details */}
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-sm text-gray-700">Detection Details:</h3>
+                            {boundingBoxes.map((pred, idx) => {
+                                const className = pred.class === 0 ? 'Faulty' : pred.class === 1 ? 'Normal' : 'Potentially Faulty';
+                                const colorClass = pred.class === 0 ? 'text-red-600' : pred.class === 1 ? 'text-green-600' : 'text-orange-600';
+                                const bgColor = pred.class === 0 ? 'bg-red-600' : pred.class === 1 ? 'bg-green-600' : 'bg-orange-600';
+                                const isExpanded = expandedErrors.includes(idx);
+                                
+                                return (
+                                    <div key={idx} className="bg-gray-50 rounded border border-gray-200 overflow-hidden">
+                                        {/* Main Error Row */}
+                                        <div 
+                                            className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                                            onClick={() => toggleErrorExpansion(idx)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className={`${bgColor} text-white px-2 py-1 rounded text-xs font-semibold`}>
+                                                    Error {idx + 1}
+                                                </span>
+                                                <span className={`font-medium ${colorClass} text-sm`}>{className}</span>
+                                                {/* Show type badge and note hint inline for visibility */}
+                                                {pred.type && pred.type !== 'ai' && (
+                                                    <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-semibold">
+                                                        {String(pred.type).toUpperCase()}
+                                                    </span>
+                                                )}
+                                                {pred.comment && (
+                                                    <span className="ml-1 text-[11px] text-gray-500">📝</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-gray-600 text-sm">
+                                                    Confidence: {(pred.confidence * 100).toFixed(1)}%
+                                                </span>
+                                                {isExpanded ? (
+                                                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                                                ) : (
+                                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Expanded Change Log */}
+                                        {isExpanded && (
+                                            <div className="border-t border-gray-200 bg-white p-3">
+                                                <h4 className="text-xs font-semibold text-gray-700 mb-2">Change Log (Latest First):</h4>
+                                                <div className="space-y-2">
+                                                    {/* Annotation from edits/additions if present */}
+                                                    {(pred.type && pred.type !== 'ai') && (
+                                                        <div className="flex items-start gap-2 text-xs">
+                                                            <div className="w-2 h-2 rounded-full bg-purple-500 mt-1 flex-shrink-0"></div>
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="font-medium text-gray-700">
+                                                                        {String(pred.type).toUpperCase()} by {pred.userId ? String(pred.userId) : 'user'}
+                                                                    </span>
+                                                                    {pred.timestamp && (
+                                                                        <span className="text-gray-500">
+                                                                            {new Date(pred.timestamp).toLocaleString()}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {pred.comment && (
+                                                                    <p className="text-gray-600 mt-1">{pred.comment}</p>
+                                                                )}
+                                                                {pred.originalBox && (
+                                                                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                        <p className="font-medium text-gray-700 mb-1">Original Box Coordinates:</p>
+                                                                        <p className="text-gray-600">
+                                                                            X1: {pred.originalBox[0].toFixed(2)}, Y1: {pred.originalBox[1].toFixed(2)}, X2: {pred.originalBox[2].toFixed(2)}, Y2: {pred.originalBox[3].toFixed(2)}
+                                                                        </p>
+                                                                        <p className="text-gray-500 mt-1">
+                                                                            Width: {(pred.originalBox[2] - pred.originalBox[0]).toFixed(2)}px, Height: {(pred.originalBox[3] - pred.originalBox[1]).toFixed(2)}px
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                {/* Show the resulting box for edited/added entries */}
+                                                                {pred.box && (
+                                                                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                        <p className="font-medium text-gray-700 mb-1">{pred.type === 'added' ? 'Added Box Coordinates:' : 'Edited Box Coordinates:'}</p>
+                                                                        <p className="text-gray-600">
+                                                                            X1: {pred.box[0].toFixed(2)}, Y1: {pred.box[1].toFixed(2)}, X2: {pred.box[2].toFixed(2)}, Y2: {pred.box[3].toFixed(2)}
+                                                                        </p>
+                                                                        <p className="text-gray-500 mt-1">
+                                                                            Width: {(pred.box[2] - pred.box[0]).toFixed(2)}px, Height: {(pred.box[3] - pred.box[1]).toFixed(2)}px
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {/* Placeholder for future entries - these will appear above */}
+                                                    {/* Future modifications will be inserted here at the top */}
+                                                    
+                                                    {/* AI Detection Entry - only for AI-origin or edited-from-AI */}
+                                                    {(!pred.type || pred.type === 'ai' || (pred.type === 'edited' && pred.originalBox)) && (
+                                                        <div className="flex items-start gap-2 text-xs">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="font-medium text-gray-700">
+                                                                        Detected by AI
+                                                                    </span>
+                                                                    <span className="text-gray-500">
+                                                                        {(() => {
+                                                                            const dt = inspection?.maintenanceImageUploadDateAndTime;
+                                                                            const d = dt ? new Date(dt) : null;
+                                                                            return (d && !isNaN(d)) ? d.toLocaleDateString('en-US', {
+                                                                                year: 'numeric', month: 'short', day: 'numeric'
+                                                                            }) : '';
+                                                                        })()}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-gray-600 mt-1">
+                                                                    AI analysis identified this as <span className={colorClass}>{className}</span> with {(pred.confidence * 100).toFixed(1)}% confidence
+                                                                </p>
+                                                                {(() => {
+                                                                    const aiBox = (pred.type === 'edited' && pred.originalBox) ? pred.originalBox : pred.box;
+                                                                    if (!aiBox) return null;
+                                                                    return (
+                                                                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                                                            <p className="font-medium text-gray-700 mb-1">Bounding Box Coordinates:</p>
+                                                                            <p className="text-gray-600">
+                                                                                X1: {aiBox[0].toFixed(2)}, Y1: {aiBox[1].toFixed(2)}, X2: {aiBox[2].toFixed(2)}, Y2: {aiBox[3].toFixed(2)}
+                                                                            </p>
+                                                                            <p className="text-gray-500 mt-1">
+                                                                                Width: {(aiBox[2] - aiBox[0]).toFixed(2)}px, Height: {(aiBox[3] - aiBox[1]).toFixed(2)}px
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+
+                {/* Edit Bounding Boxes Popup */}
+                {showEditPopup && (
+                    <EditBoundingBoxesPopup
+                        inspection={inspection}
+                        boundingBoxes={boundingBoxes}
+                        onClose={() => setShowEditPopup(false)}
+                        onSave={onRefresh}
+                    />
+                )}
+            </>
+        );
+    }
+
+    // Default: Render all sections (original behavior for backward compatibility)
     return (
         <div className="ai-analysis-section mt-6 space-y-4">
             <style>{`

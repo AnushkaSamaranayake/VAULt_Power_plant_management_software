@@ -101,9 +101,9 @@ const NavigationBar = () => {
                             className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200"
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                                A
+                                J
                             </div>
-                            <span className="hidden md:block">Admin User</span>
+                            <span className="hidden md:block">Jane Doe</span>
                             <ChevronDown className="w-4 h-4" />
                         </button>
 
@@ -111,8 +111,8 @@ const NavigationBar = () => {
                         {showAccountMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                                 <div className="px-4 py-2 border-b border-gray-100">
-                                    <p className="text-sm font-medium text-gray-900">Admin User</p>
-                                    <p className="text-xs text-gray-500">admin@gridwatch.com</p>
+                                    <p className="text-sm font-medium text-gray-900">Jane Doe</p>
+                                    <p className="text-xs text-gray-500">jonedoe@gridwatch.com</p>
                                 </div>
                                 <button
                                     onClick={() => {
