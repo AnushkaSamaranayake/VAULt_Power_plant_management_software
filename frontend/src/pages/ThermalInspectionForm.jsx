@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -10,6 +10,7 @@ import Footer from '../components/Footer';
 const ThermalInspectionForm = () => {
     const { inspectionNo } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [inspection, setInspection] = useState(null);
     const [transformer, setTransformer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -83,6 +84,17 @@ const ThermalInspectionForm = () => {
         fetchInspectionData();
         fetchSavedFormData();
     }, [inspectionNo]);
+
+    // Check if print parameter is present and trigger print preview after data is loaded
+    useEffect(() => {
+        const shouldPrint = searchParams.get('print') === 'true';
+        if (shouldPrint && inspection && !loading && !showPrintPreview) {
+            // Delay slightly to ensure all data is loaded
+            setTimeout(() => {
+                handlePrintReport();
+            }, 500);
+        }
+    }, [inspection, loading, searchParams]);
 
     // Auto-save effect with debouncing
     useEffect(() => {
@@ -912,28 +924,58 @@ const ThermalInspectionForm = () => {
         pdf.text('First Inspection Voltage and Current Readings', margin, yPosition);
         yPosition += 7;
         
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`V - R: ${formData.firstInspectionVR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.firstInspectionVY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.firstInspectionVB || '-'}`, 115, yPosition);
+        // First Inspection Table
+        const firstTableStartX = margin + 5;
+        const colWidth = 40;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('', firstTableStartX, yPosition);
+        pdf.text('R', firstTableStartX + colWidth, yPosition);
+        pdf.text('Y', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text('B', firstTableStartX + colWidth * 3, yPosition);
         yPosition += 6;
-        pdf.text(`I - R: ${formData.firstInspectionIR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.firstInspectionIY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.firstInspectionIB || '-'}`, 115, yPosition);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V(V)', firstTableStartX, yPosition);
+        pdf.text(formData.firstInspectionVR || '-', firstTableStartX + colWidth, yPosition);
+        pdf.text(formData.firstInspectionVY || '-', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.firstInspectionVB || '-', firstTableStartX + colWidth * 3, yPosition);
+        yPosition += 6;
+        
+        pdf.text('I(A)', firstTableStartX, yPosition);
+        pdf.text(formData.firstInspectionIR || '-', firstTableStartX + colWidth, yPosition);
+        pdf.text(formData.firstInspectionIY || '-', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.firstInspectionIB || '-', firstTableStartX + colWidth * 3, yPosition);
         yPosition += 10;
 
         pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
         pdf.text('Second Inspection Voltage and Current Readings', margin, yPosition);
         yPosition += 7;
         
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`V - R: ${formData.secondInspectionVR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.secondInspectionVY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.secondInspectionVB || '-'}`, 115, yPosition);
+        // Second Inspection Table
+        const secondTableStartX = margin + 5;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('', secondTableStartX, yPosition);
+        pdf.text('R', secondTableStartX + colWidth, yPosition);
+        pdf.text('Y', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text('B', secondTableStartX + colWidth * 3, yPosition);
         yPosition += 6;
-        pdf.text(`I - R: ${formData.secondInspectionIR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.secondInspectionIY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.secondInspectionIB || '-'}`, 115, yPosition);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V(V)', secondTableStartX, yPosition);
+        pdf.text(formData.secondInspectionVR || '-', secondTableStartX + colWidth, yPosition);
+        pdf.text(formData.secondInspectionVY || '-', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.secondInspectionVB || '-', secondTableStartX + colWidth * 3, yPosition);
+        yPosition += 6;
+        
+        pdf.text('I(A)', secondTableStartX, yPosition);
+        pdf.text(formData.secondInspectionIR || '-', secondTableStartX + colWidth, yPosition);
+        pdf.text(formData.secondInspectionIY || '-', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.secondInspectionIB || '-', secondTableStartX + colWidth * 3, yPosition);
 
         // Return the PDF as a blob
         return pdf.output('blob');
