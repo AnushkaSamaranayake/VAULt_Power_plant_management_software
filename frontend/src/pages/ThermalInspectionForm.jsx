@@ -77,6 +77,7 @@ const ThermalInspectionForm = () => {
     const [isEditing, setIsEditing] = useState(true);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+    const [reportFileName, setReportFileName] = useState('');
 
     useEffect(() => {
         fetchInspectionData();
@@ -404,6 +405,14 @@ const ThermalInspectionForm = () => {
             const pdfBlob = await generatePDF();
             const url = URL.createObjectURL(pdfBlob);
             setPdfPreviewUrl(url);
+            
+            // Set default filename format: transformernumber_inspectiondate_inspectedby
+            const transformerNo = inspection?.transformerNo || 'Unknown';
+            const inspectionDate = formData.dateOfInspection.replace(/-/g, '') || 'NoDate';
+            const inspectedBy = formData.inspectedBy || 'Unknown';
+            const defaultFileName = `${transformerNo}_${inspectionDate}_${inspectedBy}`;
+            setReportFileName(defaultFileName);
+            
             setShowPrintPreview(true);
         } catch (error) {
             console.error('Error generating PDF preview:', error);
@@ -415,7 +424,7 @@ const ThermalInspectionForm = () => {
         if (pdfPreviewUrl) {
             const link = document.createElement('a');
             link.href = pdfPreviewUrl;
-            link.download = `Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`;
+            link.download = `${reportFileName || 'Thermal_Inspection_Report'}.pdf`;
             link.click();
         }
     };
@@ -1970,7 +1979,7 @@ const ThermalInspectionForm = () => {
 
             {/* Print Preview Modal */}
             {showPrintPreview && (
-                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4' style={{ zIndex: 9999 }}>
                     <div className='bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col'>
                         {/* Modal Header */}
                         <div className='px-6 py-4 border-b border-gray-200'>
@@ -1989,19 +1998,39 @@ const ThermalInspectionForm = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className='px-6 py-4 border-t border-gray-200 flex justify-end gap-3'>
-                            <button
-                                onClick={handleClosePreview}
-                                className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleExportPDF}
-                                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            >
-                                Export PDF
-                            </button>
+                        <div className='px-6 py-4 border-t border-gray-200 space-y-4'>
+                            {/* Report Name Input */}
+                            <div className='flex flex-col'>
+                                <label className='text-sm font-medium text-gray-700 mb-2'>
+                                    Report File Name:
+                                </label>
+                                <input
+                                    type='text'
+                                    value={reportFileName}
+                                    onChange={(e) => setReportFileName(e.target.value)}
+                                    placeholder='transformernumber_inspectiondate_inspectedby'
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                />
+                                <p className='text-xs text-gray-500 mt-1'>
+                                    Format: transformernumber_inspectiondate_inspectedby (e.g., TR001_20250129_JohnDoe)
+                                </p>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className='flex justify-end gap-3'>
+                                <button
+                                    onClick={handleClosePreview}
+                                    className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleExportPDF}
+                                    className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                >
+                                    Export PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
