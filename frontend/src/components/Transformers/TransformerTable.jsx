@@ -1,13 +1,55 @@
 import React from "react";
-import { useEffect,useState } from "react";
+import { useEffect,useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Eye } from 'lucide-react';
 import axios from 'axios';
+import Toast from '../common/Toast';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const TransformerTable = ({ activeTable, transformers, inspections, onTransformerDeleted, onInspectionDeleted }) => {
     const navigate = useNavigate();
     const [deletingTransformerId, setDeletingTransformerId] = useState(null);
     const [deletingInspectionId, setDeletingInspectionId] = useState(null);
+    const [toast, setToast] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
+    
+    // Filter states for inspections
+    const [filterTransformer, setFilterTransformer] = useState('');
+    const [filterDate, setFilterDate] = useState('');
+
+    // Get unique transformer numbers for the dropdown
+    const uniqueTransformers = useMemo(() => {
+        if (!inspections || inspections.length === 0) return [];
+        const transformerSet = new Set(inspections.map(insp => insp.transformerNo));
+        return Array.from(transformerSet).sort();
+    }, [inspections]);
+
+    // Filter inspections based on selected filters
+    const filteredInspections = useMemo(() => {
+        if (!inspections) return [];
+        
+        return inspections.filter(inspection => {
+            // Filter by transformer
+            const matchesTransformer = !filterTransformer || 
+                inspection.transformerNo.toLowerCase().includes(filterTransformer.toLowerCase());
+            
+            // Filter by date (compare only date part, not time)
+            let matchesDate = true;
+            if (filterDate) {
+                const inspectionDate = new Date(inspection.dateOfInspectionAndTime);
+                const filterDateObj = new Date(filterDate);
+                matchesDate = inspectionDate.toDateString() === filterDateObj.toDateString();
+            }
+            
+            return matchesTransformer && matchesDate;
+        });
+    }, [inspections, filterTransformer, filterDate]);
+
+    // Clear filters
+    const clearFilters = () => {
+        setFilterTransformer('');
+        setFilterDate('');
+    };
 
     const getStatusColor = (state) => {
         switch (state) {
@@ -23,45 +65,55 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
     };
 
     const handleDeleteTransformer = async (transformerNo) => {
-        if (!window.confirm(`Are you sure you want to delete transformer ${transformerNo}? This action cannot be undone and will also delete all associated inspections.`)) {
-            return;
-        }
-
-        setDeletingTransformerId(transformerNo);
-        
-        try {
-            await axios.delete(`http://localhost:8080/api/transformers/${transformerNo}`);
-            
-            if (onTransformerDeleted) {
-                onTransformerDeleted(transformerNo);
-            }
-        } catch (error) {
-            console.error('Error deleting transformer:', error);
-            alert('Failed to delete transformer. Please try again.');
-        } finally {
-            setDeletingTransformerId(null);
-        }
+        setConfirmDialog({
+            message: `Are you sure you want to delete transformer ${transformerNo}? This action cannot be undone and will also delete all associated inspections.`,
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                setDeletingTransformerId(transformerNo);
+                
+                try {
+                    await axios.delete(`http://localhost:8080/api/transformers/${transformerNo}`);
+                    
+                    if (onTransformerDeleted) {
+                        onTransformerDeleted(transformerNo);
+                    }
+                    
+                    setToast({ message: 'Transformer deleted successfully!', type: 'success' });
+                } catch (error) {
+                    console.error('Error deleting transformer:', error);
+                    setToast({ message: 'Failed to delete transformer. Please try again.', type: 'error' });
+                } finally {
+                    setDeletingTransformerId(null);
+                }
+            },
+            onCancel: () => setConfirmDialog(null)
+        });
     };
 
     const handleDeleteInspection = async (inspectionNo) => {
-        if (!window.confirm(`Are you sure you want to delete inspection ${inspectionNo}? This action cannot be undone.`)) {
-            return;
-        }
-
-        setDeletingInspectionId(inspectionNo);
-        
-        try {
-            await axios.delete(`http://localhost:8080/api/inspections/${inspectionNo}`);
-            
-            if (onInspectionDeleted) {
-                onInspectionDeleted(inspectionNo);
-            }
-        } catch (error) {
-            console.error('Error deleting inspection:', error);
-            alert('Failed to delete inspection. Please try again.');
-        } finally {
-            setDeletingInspectionId(null);
-        }
+        setConfirmDialog({
+            message: `Are you sure you want to delete inspection ${inspectionNo}? This action cannot be undone.`,
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                setDeletingInspectionId(inspectionNo);
+                
+                try {
+                    await axios.delete(`http://localhost:8080/api/inspections/${inspectionNo}`);
+                    
+                    if (onInspectionDeleted) {
+                        onInspectionDeleted(inspectionNo);
+                    }
+                    
+                    setToast({ message: 'Inspection deleted successfully!', type: 'success' });
+                } catch (error) {
+                    console.error('Error deleting inspection:', error);
+                    setToast({ message: 'Failed to delete inspection. Please try again.', type: 'error' });
+                } finally {
+                    setDeletingInspectionId(null);
+                }
+            },
+            onCancel: () => setConfirmDialog(null)
+        });
     };
 
     return (
@@ -117,6 +169,57 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
 
             {activeTable === "inspections" && (
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mx-5 mt-10">
+                    {/* Filter Section */}
+                    <div className="bg-white shadow rounded-md border border-gray-200 p-4 mb-4">
+                        <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="filterTransformer" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                    Filter by Transformer No:
+                                </label>
+                                <input
+                                    type="text"
+                                    id="filterTransformer"
+                                    list="transformerList"
+                                    value={filterTransformer}
+                                    onChange={(e) => setFilterTransformer(e.target.value)}
+                                    placeholder="Select or type transformer..."
+                                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                                />
+                                <datalist id="transformerList">
+                                    {uniqueTransformers.map(transformerNo => (
+                                        <option key={transformerNo} value={transformerNo} />
+                                    ))}
+                                </datalist>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="filterDate" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                    Inspection Date:
+                                </label>
+                                <input
+                                    type="date"
+                                    id="filterDate"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            {(filterTransformer || filterDate) && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                            
+                            <div className="text-sm text-gray-600 ml-auto">
+                                Showing {filteredInspections.length} of {inspections?.length || 0} inspections
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-6 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Inspection No</div>
@@ -125,8 +228,8 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                         <div className="font-semibold">Status</div>
                         <div className="font-semibold">Actions</div>
                     </div>
-                    {inspections && inspections.length > 0 ? (
-                        inspections.map((inspection) => (
+                    {filteredInspections && filteredInspections.length > 0 ? (
+                        filteredInspections.map((inspection) => (
                             <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3 hover:shadow-lg transition duration-200">
                                 <div className="text-xs">{inspection.transformerNo}</div>
                                 <div className="text-xs">{inspection.inspectionNo}</div>
@@ -164,10 +267,32 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                         ))
                     ) : (
                         <div className="bg-white shadow rounded-md border border-gray-200 p-8 text-center">
-                            <p className="text-gray-500 text-sm">No inspections found.</p>
+                            <p className="text-gray-500 text-sm">
+                                {(filterTransformer || filterDate) 
+                                    ? 'No inspections found matching the selected filters.' 
+                                    : 'No inspections found.'}
+                            </p>
                         </div>
                     )}
                 </div>
+            )}
+            
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
+            
+            {/* Confirm Dialog */}
+            {confirmDialog && (
+                <ConfirmDialog 
+                    message={confirmDialog.message}
+                    onConfirm={confirmDialog.onConfirm}
+                    onCancel={confirmDialog.onCancel}
+                />
             )}
         </div>
     );
