@@ -1,7 +1,7 @@
 import React from "react";
 import { useEffect,useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Eye, X } from 'lucide-react';
+import { Trash2, Eye, X, FileText } from 'lucide-react';
 import axios from 'axios';
 
 const TransformerTable = ({ activeTable, transformers, inspections, onTransformerDeleted, onInspectionDeleted }) => {
@@ -14,6 +14,32 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
     const [selectedDate, setSelectedDate] = useState('');
     const [transformerSearchTerm, setTransformerSearchTerm] = useState('');
     const [showTransformerDropdown, setShowTransformerDropdown] = useState(false);
+    const [reportStatuses, setReportStatuses] = useState({});
+
+    // Fetch report statuses for inspections
+    useEffect(() => {
+        const fetchReportStatuses = async () => {
+            if (!inspections || inspections.length === 0) return;
+            
+            const statuses = {};
+            await Promise.all(
+                inspections.map(async (inspection) => {
+                    try {
+                        const response = await axios.get(
+                            `http://localhost:8080/api/inspection-report-forms/${inspection.inspectionNo}/status`
+                        );
+                        statuses[inspection.inspectionNo] = response.data.isFinalized || false;
+                    } catch (error) {
+                        // If form doesn't exist or error, it's not finalized
+                        statuses[inspection.inspectionNo] = false;
+                    }
+                })
+            );
+            setReportStatuses(statuses);
+        };
+        
+        fetchReportStatuses();
+    }, [inspections]);
 
     // Get unique transformer numbers from inspections
     const uniqueTransformers = useMemo(() => {
@@ -291,19 +317,20 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                     </div>
 
                     {/* Table Header */}
-                    <div className="grid grid-cols-6 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
+                    <div className="grid grid-cols-7 gap-y-2 p-4 bg-gray-100 rounded-md mb-4">
                         <div className="font-semibold">Transformer No</div>
                         <div className="font-semibold">Inspection No</div>
                         <div className="font-semibold">Inspection Date</div>
                         <div className="font-semibold">Maintainance Date</div>
                         <div className="font-semibold">Status</div>
+                        <div className="font-semibold">Report</div>
                         <div className="font-semibold">Actions</div>
                     </div>
                     
                     {/* Table Rows */}
                     {filteredInspections && filteredInspections.length > 0 ? (
                         filteredInspections.map((inspection) => (
-                            <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-6 gap-y-2 p-3 hover:shadow-lg transition duration-200">
+                            <div key={inspection.inspectionNo} className="bg-white shadow rounded-md border border-gray-200 grid grid-cols-7 gap-y-2 p-3 hover:shadow-lg transition duration-200">
                                 <div className="text-xs">{inspection.transformerNo}</div>
                                 <div className="text-xs">{inspection.inspectionNo}</div>
                                 <div className="text-xs">{inspection.dateOfInspectionAndTime}</div>
@@ -313,6 +340,21 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                                         : 'Not maintained yet'}
                                 </div>
                                 <div className={`px-4 py-1 text-center text-xs font-medium rounded-full w-fit ${getStatusColor(inspection.state)}`}>{inspection.state}</div>
+                                <div className="flex items-center">
+                                    <button
+                                        onClick={() => reportStatuses[inspection.inspectionNo] && navigate(`/inspection/${inspection.inspectionNo}/form`)}
+                                        disabled={!reportStatuses[inspection.inspectionNo]}
+                                        className={`flex items-center text-xs px-2 py-1 rounded-lg shadow transition-colors ${
+                                            reportStatuses[inspection.inspectionNo]
+                                                ? 'bg-orange-500 text-white hover:bg-orange-600 cursor-pointer'
+                                                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                        }`}
+                                        title={reportStatuses[inspection.inspectionNo] ? 'View Report' : 'Report not ready'}
+                                    >
+                                        <FileText className="w-3 h-3 mr-1" />
+                                        Report
+                                    </button>
+                                </div>
                                 <div className="flex items-center space-x-1">
                                     <button 
                                         onClick={() => navigate(`/inspections/${inspection.inspectionNo}`)} 
