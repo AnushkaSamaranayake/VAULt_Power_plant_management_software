@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Image, Eye, Trash2, Upload, X, AlertCircle, Brain } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -10,6 +10,7 @@ import Footer from '../components/Footer';
 const ThermalInspectionForm = () => {
     const { inspectionNo } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [inspection, setInspection] = useState(null);
     const [transformer, setTransformer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -77,11 +78,23 @@ const ThermalInspectionForm = () => {
     const [isEditing, setIsEditing] = useState(true);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+    const [reportFileName, setReportFileName] = useState('');
 
     useEffect(() => {
         fetchInspectionData();
         fetchSavedFormData();
     }, [inspectionNo]);
+
+    // Check if print parameter is present and trigger print preview after data is loaded
+    useEffect(() => {
+        const shouldPrint = searchParams.get('print') === 'true';
+        if (shouldPrint && inspection && !loading && !showPrintPreview) {
+            // Delay slightly to ensure all data is loaded
+            setTimeout(() => {
+                handlePrintReport();
+            }, 500);
+        }
+    }, [inspection, loading, searchParams]);
 
     // Auto-save effect with debouncing
     useEffect(() => {
@@ -355,9 +368,18 @@ const ThermalInspectionForm = () => {
     const handleInspectionReportChange = (index, field, value) => {
         setFormData(prev => ({
             ...prev,
-            inspectionReport: prev.inspectionReport.map((row, idx) => 
-                idx === index ? { ...row, [field]: value } : row
-            )
+            inspectionReport: prev.inspectionReport.map((row, idx) => {
+                if (idx === index) {
+                    // Make OK and NOT OK mutually exclusive
+                    if (field === 'ok' && value === true) {
+                        return { ...row, ok: true, notOk: false };
+                    } else if (field === 'notOk' && value === true) {
+                        return { ...row, ok: false, notOk: true };
+                    }
+                    return { ...row, [field]: value };
+                }
+                return row;
+            })
         }));
     };
 
@@ -404,6 +426,14 @@ const ThermalInspectionForm = () => {
             const pdfBlob = await generatePDF();
             const url = URL.createObjectURL(pdfBlob);
             setPdfPreviewUrl(url);
+            
+            // Set default filename format: transformernumber_inspectiondate_inspectedby
+            const transformerNo = inspection?.transformerNo || 'Unknown';
+            const inspectionDate = formData.dateOfInspection.replace(/-/g, '') || 'NoDate';
+            const inspectedBy = formData.inspectedBy || 'Unknown';
+            const defaultFileName = `${transformerNo}_${inspectionDate}_${inspectedBy}`;
+            setReportFileName(defaultFileName);
+            
             setShowPrintPreview(true);
         } catch (error) {
             console.error('Error generating PDF preview:', error);
@@ -415,7 +445,7 @@ const ThermalInspectionForm = () => {
         if (pdfPreviewUrl) {
             const link = document.createElement('a');
             link.href = pdfPreviewUrl;
-            link.download = `Thermal_Inspection_Report_${inspection?.inspectionNo || 'Unknown'}.pdf`;
+            link.download = `${reportFileName || 'Thermal_Inspection_Report'}.pdf`;
             link.click();
         }
     };
@@ -433,11 +463,36 @@ const ThermalInspectionForm = () => {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 25.4; // 1 inch = 25.4mm
-        const maxY = pageHeight - margin; // Bottom margin
+        const maxY = pageHeight - margin - 10; // Bottom margin with space for footer
         let yPosition = margin; // Start at top margin
+
+        // Generate filename for footer
+        const transformerNo = inspection?.transformerNo || 'Unknown';
+        const inspectionDate = formData.dateOfInspection.replace(/-/g, '') || 'NoDate';
+        const inspectedBy = formData.inspectedBy || 'Unknown';
+        const fileName = `${transformerNo}_${inspectionDate}_${inspectedBy}.pdf`;
+
+        const addFooter = () => {
+            const currentPage = pdf.internal.getCurrentPageInfo().pageNumber;
+            const totalPages = pdf.internal.getNumberOfPages();
+            
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(128, 128, 128);
+            
+            // Left corner - filename
+            pdf.text(fileName, margin, pageHeight - 15);
+            
+            // Right corner - page number
+            pdf.text(`Page ${currentPage} of ${totalPages}`, pageWidth - margin - 30, pageHeight - 15);
+            
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
+        };
 
         const checkPageBreak = (requiredSpace) => {
             if (yPosition + requiredSpace > maxY) {
+                addFooter();
                 pdf.addPage();
                 yPosition = margin;
                 return true;
@@ -903,28 +958,65 @@ const ThermalInspectionForm = () => {
         pdf.text('First Inspection Voltage and Current Readings', margin, yPosition);
         yPosition += 7;
         
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`V - R: ${formData.firstInspectionVR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.firstInspectionVY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.firstInspectionVB || '-'}`, 115, yPosition);
+        // First Inspection Table
+        const firstTableStartX = margin + 5;
+        const colWidth = 40;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('', firstTableStartX, yPosition);
+        pdf.text('R', firstTableStartX + colWidth, yPosition);
+        pdf.text('Y', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text('B', firstTableStartX + colWidth * 3, yPosition);
         yPosition += 6;
-        pdf.text(`I - R: ${formData.firstInspectionIR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.firstInspectionIY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.firstInspectionIB || '-'}`, 115, yPosition);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V(V)', firstTableStartX, yPosition);
+        pdf.text(formData.firstInspectionVR || '-', firstTableStartX + colWidth, yPosition);
+        pdf.text(formData.firstInspectionVY || '-', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.firstInspectionVB || '-', firstTableStartX + colWidth * 3, yPosition);
+        yPosition += 6;
+        
+        pdf.text('I(A)', firstTableStartX, yPosition);
+        pdf.text(formData.firstInspectionIR || '-', firstTableStartX + colWidth, yPosition);
+        pdf.text(formData.firstInspectionIY || '-', firstTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.firstInspectionIB || '-', firstTableStartX + colWidth * 3, yPosition);
         yPosition += 10;
 
         pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
         pdf.text('Second Inspection Voltage and Current Readings', margin, yPosition);
         yPosition += 7;
         
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`V - R: ${formData.secondInspectionVR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.secondInspectionVY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.secondInspectionVB || '-'}`, 115, yPosition);
+        // Second Inspection Table
+        const secondTableStartX = margin + 5;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('', secondTableStartX, yPosition);
+        pdf.text('R', secondTableStartX + colWidth, yPosition);
+        pdf.text('Y', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text('B', secondTableStartX + colWidth * 3, yPosition);
         yPosition += 6;
-        pdf.text(`I - R: ${formData.secondInspectionIR || '-'}`, margin + 5, yPosition);
-        pdf.text(`Y: ${formData.secondInspectionIY || '-'}`, 70, yPosition);
-        pdf.text(`B: ${formData.secondInspectionIB || '-'}`, 115, yPosition);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('V(V)', secondTableStartX, yPosition);
+        pdf.text(formData.secondInspectionVR || '-', secondTableStartX + colWidth, yPosition);
+        pdf.text(formData.secondInspectionVY || '-', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.secondInspectionVB || '-', secondTableStartX + colWidth * 3, yPosition);
+        yPosition += 6;
+        
+        pdf.text('I(A)', secondTableStartX, yPosition);
+        pdf.text(formData.secondInspectionIR || '-', secondTableStartX + colWidth, yPosition);
+        pdf.text(formData.secondInspectionIY || '-', secondTableStartX + colWidth * 2, yPosition);
+        pdf.text(formData.secondInspectionIB || '-', secondTableStartX + colWidth * 3, yPosition);
+
+        // Add footer to all pages
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            addFooter();
+        }
 
         // Return the PDF as a blob
         return pdf.output('blob');
@@ -1970,7 +2062,7 @@ const ThermalInspectionForm = () => {
 
             {/* Print Preview Modal */}
             {showPrintPreview && (
-                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4' style={{ zIndex: 9999 }}>
                     <div className='bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col'>
                         {/* Modal Header */}
                         <div className='px-6 py-4 border-b border-gray-200'>
@@ -1989,19 +2081,39 @@ const ThermalInspectionForm = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className='px-6 py-4 border-t border-gray-200 flex justify-end gap-3'>
-                            <button
-                                onClick={handleClosePreview}
-                                className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleExportPDF}
-                                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            >
-                                Export PDF
-                            </button>
+                        <div className='px-6 py-4 border-t border-gray-200 space-y-4'>
+                            {/* Report Name Input */}
+                            <div className='flex flex-col'>
+                                <label className='text-sm font-medium text-gray-700 mb-2'>
+                                    Report File Name:
+                                </label>
+                                <input
+                                    type='text'
+                                    value={reportFileName}
+                                    onChange={(e) => setReportFileName(e.target.value)}
+                                    placeholder='transformernumber_inspectiondate_inspectedby'
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                />
+                                <p className='text-xs text-gray-500 mt-1'>
+                                    Format: transformernumber_inspectiondate_inspectedby (e.g., TR001_20250129_JohnDoe)
+                                </p>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className='flex justify-end gap-3'>
+                                <button
+                                    onClick={handleClosePreview}
+                                    className='px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500'
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleExportPDF}
+                                    className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                >
+                                    Export PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

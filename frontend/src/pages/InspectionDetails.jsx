@@ -120,7 +120,17 @@ const InspectionDetails = () => {
                             }
                         </button>
                         <button 
-                            className='flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium'
+                            onClick={() => {
+                                if (formStatus.isFinalized) {
+                                    navigate(`/inspection/${inspectionNo}/form?print=true`);
+                                }
+                            }}
+                            disabled={!formStatus.isFinalized || loadingFormStatus}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+                                !formStatus.isFinalized || loadingFormStatus
+                                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                            }`}
                         >
                             <Printer className='w-5 h-5' />
                             Print Inspection Record
