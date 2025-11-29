@@ -1,7 +1,7 @@
 import React from "react";
 import { useEffect,useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Eye } from 'lucide-react';
+import { Trash2, Eye, FileText } from 'lucide-react';
 import axios from 'axios';
 import Toast from '../common/Toast';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -16,6 +16,9 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
     // Filter states for inspections
     const [filterTransformer, setFilterTransformer] = useState('');
     const [filterDate, setFilterDate] = useState('');
+    
+    // Track report status for each inspection
+    const [reportStatuses, setReportStatuses] = useState({});
 
     // Get unique transformer numbers for the dropdown
     const uniqueTransformers = useMemo(() => {
@@ -50,6 +53,32 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
         setFilterTransformer('');
         setFilterDate('');
     };
+
+    // Fetch report status for all inspections
+    useEffect(() => {
+        const fetchReportStatuses = async () => {
+            if (!inspections || inspections.length === 0) return;
+            
+            const statuses = {};
+            await Promise.all(
+                inspections.map(async (inspection) => {
+                    try {
+                        const response = await axios.get(
+                            `http://localhost:8080/api/inspection-report-forms/${inspection.inspectionNo}/status`
+                        );
+                        statuses[inspection.inspectionNo] = response.data.isFinalized || false;
+                    } catch (error) {
+                        statuses[inspection.inspectionNo] = false;
+                    }
+                })
+            );
+            setReportStatuses(statuses);
+        };
+        
+        if (activeTable === 'inspections') {
+            fetchReportStatuses();
+        }
+    }, [inspections, activeTable]);
 
     const getStatusColor = (state) => {
         switch (state) {
@@ -248,6 +277,23 @@ const TransformerTable = ({ activeTable, transformers, inspections, onTransforme
                                     >
                                         <Eye className="w-3 h-3 mr-1" />
                                         View
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            if (reportStatuses[inspection.inspectionNo]) {
+                                                navigate(`/inspection/${inspection.inspectionNo}/form`);
+                                            }
+                                        }}
+                                        disabled={!reportStatuses[inspection.inspectionNo]}
+                                        className={`flex items-center text-xs px-2 py-1 rounded-lg shadow transition-colors ${
+                                            !reportStatuses[inspection.inspectionNo]
+                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                                        }`}
+                                        title={reportStatuses[inspection.inspectionNo] ? "View Report" : "Report Not Ready"}
+                                    >
+                                        <FileText className="w-3 h-3 mr-1" />
+                                        Report
                                     </button>
                                     <button 
                                         onClick={() => handleDeleteInspection(inspection.inspectionNo)}
