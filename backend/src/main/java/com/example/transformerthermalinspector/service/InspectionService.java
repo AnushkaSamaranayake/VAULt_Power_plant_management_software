@@ -902,32 +902,188 @@ public class InspectionService {
     
     /**
      * Clean up all bounding box annotations after model retraining
-     * This method clears edited and deleted bounding box data for all inspections
+     * This method:
+     * 1. Merges effective boxes (AI + edited - deleted) into ai_bounding_boxes
+     * 2. Clears edited and deleted bounding box columns
      * @return Number of inspections updated
      */
     @org.springframework.transaction.annotation.Transactional
     public int cleanupAllBoundingBoxAnnotations() {
-        return inspectionRepository.cleanupAllBoundingBoxAnnotations();
+        // Get all inspections with bounding box changes
+        List<Inspection> inspectionsToClean = inspectionRepository.findInspectionsWithBoundingBoxChanges();
+        
+        int updatedCount = 0;
+        for (Inspection inspection : inspectionsToClean) {
+            try {
+                // Get effective boxes (merged result)
+                String effectiveBoxes = getEffectiveBoxesInternal(inspection);
+                
+                // Update ai_bounding_boxes with the effective result
+                inspection.setAiBoundingBoxes(effectiveBoxes);
+                
+                // Clear the edit columns
+                inspection.setEditedOrManuallyAddedBoxes(null);
+                inspection.setDeletedBoundingBoxes(null);
+                
+                // Save the updated inspection
+                inspectionRepository.save(inspection);
+                updatedCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to cleanup inspection " + inspection.getInspectionNo() + ": " + e.getMessage());
+            }
+        }
+        
+        return updatedCount;
     }
     
     /**
      * Clean up bounding box annotations for a specific transformer after model retraining
+     * This method:
+     * 1. Merges effective boxes (AI + edited - deleted) into ai_bounding_boxes
+     * 2. Clears edited and deleted bounding box columns
      * @param transformerNo The transformer number to clean up
      * @return Number of inspections updated
      */
     @org.springframework.transaction.annotation.Transactional
     public int cleanupBoundingBoxAnnotationsByTransformer(String transformerNo) {
-        return inspectionRepository.cleanupBoundingBoxAnnotationsByTransformer(transformerNo);
+        // Get inspections with changes for this transformer
+        List<Inspection> inspectionsToClean = inspectionRepository.findInspectionsWithBoundingBoxChangesByTransformer(transformerNo);
+        
+        int updatedCount = 0;
+        for (Inspection inspection : inspectionsToClean) {
+            try {
+                // Get effective boxes (merged result)
+                String effectiveBoxes = getEffectiveBoxesInternal(inspection);
+                
+                // Update ai_bounding_boxes with the effective result
+                inspection.setAiBoundingBoxes(effectiveBoxes);
+                
+                // Clear the edit columns
+                inspection.setEditedOrManuallyAddedBoxes(null);
+                inspection.setDeletedBoundingBoxes(null);
+                
+                // Save the updated inspection
+                inspectionRepository.save(inspection);
+                updatedCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to cleanup inspection " + inspection.getInspectionNo() + ": " + e.getMessage());
+            }
+        }
+        
+        return updatedCount;
     }
     
     /**
      * Clean up bounding box annotations for a specific inspection
+     * This method:
+     * 1. Merges effective boxes (AI + edited - deleted) into ai_bounding_boxes
+     * 2. Clears edited and deleted bounding box columns
      * @param inspectionNo The inspection number to clean up
      * @return Number of inspections updated (should be 0 or 1)
      */
     @org.springframework.transaction.annotation.Transactional
     public int cleanupBoundingBoxAnnotationsById(Long inspectionNo) {
-        return inspectionRepository.cleanupBoundingBoxAnnotationsById(inspectionNo);
+        return inspectionRepository.findById(inspectionNo)
+                .map(inspection -> {
+                    try {
+                        // Get effective boxes (merged result)
+                        String effectiveBoxes = getEffectiveBoxesInternal(inspection);
+                        
+                        // Update ai_bounding_boxes with the effective result
+                        inspection.setAiBoundingBoxes(effectiveBoxes);
+                        
+                        // Clear the edit columns
+                        inspection.setEditedOrManuallyAddedBoxes(null);
+                        inspection.setDeletedBoundingBoxes(null);
+                        
+                        // Save the updated inspection
+                        inspectionRepository.save(inspection);
+                        return 1;
+                    } catch (Exception e) {
+                        System.err.println("Failed to cleanup inspection " + inspectionNo + ": " + e.getMessage());
+                        return 0;
+                    }
+                })
+                .orElse(0);
+    }
+    
+    /**
+     * Internal helper to get effective boxes for an inspection
+     * @param inspection The inspection entity
+     * @return JSON string of effective boxes
+     */
+    private String getEffectiveBoxesInternal(Inspection inspection) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            
+            // Parse AI boxes
+            java.util.List<java.util.Map<String, Object>> aiBoxes = new java.util.ArrayList<>();
+            if (inspection.getAiBoundingBoxes() != null && !inspection.getAiBoundingBoxes().trim().isEmpty()) {
+                aiBoxes = mapper.readValue(inspection.getAiBoundingBoxes(), 
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.List<java.util.Map<String, Object>>>() {});
+            }
+            
+            // Parse deleted boxes
+            java.util.List<java.util.Map<String, Object>> deletedBoxes = new java.util.ArrayList<>();
+            if (inspection.getDeletedBoundingBoxes() != null && !inspection.getDeletedBoundingBoxes().trim().isEmpty()) {
+                deletedBoxes = mapper.readValue(inspection.getDeletedBoundingBoxes(), 
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.List<java.util.Map<String, Object>>>() {});
+            }
+            
+            // Parse edited/added boxes
+            java.util.List<java.util.Map<String, Object>> editedBoxes = new java.util.ArrayList<>();
+            if (inspection.getEditedOrManuallyAddedBoxes() != null && !inspection.getEditedOrManuallyAddedBoxes().trim().isEmpty()) {
+                editedBoxes = mapper.readValue(inspection.getEditedOrManuallyAddedBoxes(), 
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.List<java.util.Map<String, Object>>>() {});
+            }
+            
+            // Start with AI boxes
+            java.util.List<java.util.Map<String, Object>> effectiveBoxes = new java.util.ArrayList<>(aiBoxes);
+            
+            // Remove deleted boxes
+            effectiveBoxes.removeIf(aiBox -> 
+                deletedBoxes.stream().anyMatch(delBox -> boxesMatch(aiBox, delBox))
+            );
+            
+            // Add edited/manually added boxes
+            effectiveBoxes.addAll(editedBoxes);
+            
+            return mapper.writeValueAsString(effectiveBoxes);
+            
+        } catch (Exception e) {
+            System.err.println("Error computing effective boxes: " + e.getMessage());
+            // Return original AI boxes as fallback
+            return inspection.getAiBoundingBoxes();
+        }
+    }
+    
+    /**
+     * Helper to check if two boxes match (for deletion purposes)
+     */
+    private boolean boxesMatch(java.util.Map<String, Object> box1, java.util.Map<String, Object> box2) {
+        if (box1 == null || box2 == null) return false;
+        
+        // Compare box coordinates with small tolerance
+        Object box1Coords = box1.get("box");
+        Object box2Coords = box2.get("box");
+        
+        if (box1Coords instanceof java.util.List && box2Coords instanceof java.util.List) {
+            java.util.List<?> coords1 = (java.util.List<?>) box1Coords;
+            java.util.List<?> coords2 = (java.util.List<?>) box2Coords;
+            
+            if (coords1.size() == 4 && coords2.size() == 4) {
+                for (int i = 0; i < 4; i++) {
+                    double c1 = ((Number) coords1.get(i)).doubleValue();
+                    double c2 = ((Number) coords2.get(i)).doubleValue();
+                    if (Math.abs(c1 - c2) > 1.0) { // 1 pixel tolerance
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
