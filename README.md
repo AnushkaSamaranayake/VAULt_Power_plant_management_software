@@ -421,7 +421,8 @@ ___
 
 ▶️ Then click the *Save* button to save the changes done to the form.
 
-![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video1_Fill.gif)
+![Fill Inspection Form Demo](images/Team_VAULt_Phase4_Video1_Fill\ \(1\).gif)
+
 
 ___
 ## 8. Editing The Thermal Inspection Form 🧑‍💻📃
@@ -434,7 +435,8 @@ ___
 
 ▶️ The user may use either *Save* button to save or "Print" button to directly export the PDF.
 
-![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video2_Edit.gif)
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase4_Video2_Edit.gif)
+
 
 ___
 ## 9. Exporting The Inspection Report 🧑‍💻📃
@@ -445,7 +447,8 @@ ___
 
 ▶️ The user may use this functionality to export the PDF of the inspection record
 
-![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video3_Print.gif)
+![Print Inspection Report Demo](images/Team_VAULt_Phase4_Video3_Print.gif)
+
 
 ___
 ## 10. Exporting Change Log 🧑‍💻📃
@@ -454,7 +457,7 @@ ___
 
 ▶️ The user can Type or use the dropbox/Calendar to filter out the necessary entries.
 
-![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video4_Filter.gif)
+![Filtering Demo](images/Team_VAULt_Phase4_Video4_Filter.gif)
 
 
 
