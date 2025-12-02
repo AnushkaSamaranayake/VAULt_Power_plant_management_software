@@ -49,7 +49,7 @@ Fully interactive annotation tools built on top of the Phase 2 comparison view a
 - One-click export of feedback log in both JSON and CSV formats (ready for future model retraining)
 - Intuitive UI with keyboard shortcuts and undo/redo support (bonus creativity points)
   
-### **Phase 4: Maintenance Record Sheet Generation** 🚧 *In Progress*  
+### **Phase 4: Maintenance Record Sheet Generation** ✅ *Completed* 
 - Automatic generation and preview of transformer-specific digital maintenance record form after inspection form is filled and saved
 - Pre-filled content includes:
   - Transformer details (ID, location, capacity, pole number, etc.)
@@ -411,7 +411,7 @@ ___
 ![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video6.gif)
 
 ___
-## 7. Filling Up The Thermal Inspection Form
+## 7. Filling Up The Thermal Inspection Form 📝
 
 ▶️ From the *Inspections* view, choose the inspection to be completed and click *Export Change Log*.
 
@@ -421,11 +421,11 @@ ___
 
 ▶️ Then click the *Save* button to save the changes done to the form.
 
-![Fill Inspection Form Demo](images/Team_VAULt_Phase4_Video1_Fill\ \(1\).gif)
+![Fill Inspection Form Demo](images/Team_VAULt_Phase4_Video1_Fill_.gif)
 
 
 ___
-## 8. Editing The Thermal Inspection Form 🧑‍💻📃
+## 8. Editing The Thermal Inspection Form ✏️
 
 ▶️ On the bottom of the *Inspections* view, click the button *View Inspection Form*. The user will be directed to the form.
 
@@ -439,7 +439,7 @@ ___
 
 
 ___
-## 9. Exporting The Inspection Report 🧑‍💻📃
+## 9. Exporting The Inspection Report 🖨️
 
 ▶️ From the *Inspection* view, on the button of the page, click *Print Inspection Record*.
 
@@ -451,7 +451,7 @@ ___
 
 
 ___
-## 10. Exporting Change Log 🧑‍💻📃
+## 10. Filtering Inspection Entries 🔍
 
 ▶️ From the *Inspection List* view, on the top of the tables there are 2 filters for Transformer and Date. 
 
