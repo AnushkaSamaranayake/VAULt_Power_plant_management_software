@@ -32,10 +32,34 @@ The project aims to create a complete software solution for **automating thermal
 - Define a detection threshold to identify anomalies in the thermal images
 - Side by side comparison of maintenance and baseline images after Anomaly detection with zoom, click & drag, and reset functionalities
 
-### **Phase 3: Interactive Annotation & Feedback** 🚧 *In Progress*  
+### **Phase 3: Interactive Annotation & Feedback** ✅ *Completed* 
 
+Fully interactive annotation tools built on top of the Phase 2 comparison view allowing users to:
+  - Add new anomalies (bounding box)
+  - Edit/resize/move existing detected anomalies
+  - Delete false-positive detections
+  - Add optional comments/notes to any annotation
+- All annotation actions (add/edit/delete) are automatically saved in real-time with full metadata:
+  - User ID, timestamp, action type, image ID, transformer ID
+- Existing annotations are instantly reloaded when revisiting the same inspection
+- Complete feedback log capturing:
+  - Original YOLO predictions
+  - Final user-validated/corrected annotations
+  - Annotator metadata
+- One-click export of feedback log in both JSON and CSV formats (ready for future model retraining)
+- Intuitive UI with keyboard shortcuts and undo/redo support (bonus creativity points)
+  
 ### **Phase 4: Maintenance Record Sheet Generation** 🚧 *In Progress*  
-
+- Automatic generation and preview of transformer-specific digital maintenance record form after inspection form is filled and saved
+- Pre-filled content includes:
+  - Transformer details (ID, location, capacity, pole number, etc.)
+  - Inspection date & time
+  - Embedded thermal image with final user-validated anomaly markers (from Phase 3)
+  - Complete list of anomalies with type and severity
+- Fully editable engineer input fields (Past details, readings, recommended actions, etc)
+- Save completed maintenance record permanently linked to the transformer and inspection
+- Maintenance record history viewer – view and filter out all past records for any transformer with search & filter
+- Print-ready PDF export of the final maintenance record
 ---
 
 ## Current Status
