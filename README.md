@@ -411,6 +411,52 @@ ___
 ![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_03_video6.gif)
 
 ___
+## 7. Filling Up The Thermal Inspection Form
+
+▶️ From the *Inspections* view, choose the inspection to be completed and click *Export Change Log*.
+
+▶️ On the botton of the page there is a button called *Fill Inspection Form*. Click that button. 
+
+▶️ The user may fill up the necessary fields in the form.
+
+▶️ Then click the *Save* button to save the changes done to the form.
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video1_Fill.gif)
+
+___
+## 8. Editing The Thermal Inspection Form 🧑‍💻📃
+
+▶️ On the bottom of the *Inspections* view, click the button *View Inspection Form*. The user will be directed to the form.
+
+▶️ On the bottom of the form, click the a button *Edit*.
+
+▶️ The fields will be edittable and the user may edit the necessary fields in the form.
+
+▶️ The user may use either *Save* button to save or "Print" button to directly export the PDF.
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video2_Edit.gif)
+
+___
+## 9. Exporting The Inspection Report 🧑‍💻📃
+
+▶️ From the *Inspection* view, on the button of the page, click *Print Inspection Record*.
+
+▶️ A print preview pop-up will show up along with an editable field for changing the file name. Click *Save* option.
+
+▶️ The user may use this functionality to export the PDF of the inspection record
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video3_Print.gif)
+
+___
+## 10. Exporting Change Log 🧑‍💻📃
+
+▶️ From the *Inspection List* view, on the top of the tables there are 2 filters for Transformer and Date. 
+
+▶️ The user can Type or use the dropbox/Calendar to filter out the necessary entries.
+
+![Team VAULt Phase 03 Demo](images/Team_VAULt_Phase_04_Video4_Filter.gif)
+
+
 
 ## Workflow through the the Interface
 
@@ -424,3 +470,6 @@ The videos explaining the workflows through the User Interface for all the curre
 
 **Phase 3:**  
 👉 [Watch the Workflow Video for Phase 3](<https://drive.google.com/file/d/1oBK7fp4eDmFDBDKQfPqj_T-U-D35DcXK/view?usp=sharing)>) 
+
+**Phase 4:**  
+👉 [Watch the Workflow Video for Phase 4](<https://drive.google.com/file/d/16mHmh70S4ynEDrKBiKmC_xPGdTkG-6PD/view?usp=drive_link>) 
